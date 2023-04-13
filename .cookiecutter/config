@@ -1,0 +1,5 @@
+# Change these at your peril:
+export PROJECT_NAME=ahl_targets
+export REPO_NAME=ahl_targets
+export DESCRIPTION=Mandatory organisational targets
+export PROJECT_OPENNESS=private
