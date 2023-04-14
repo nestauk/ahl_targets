@@ -1,0 +1,10 @@
+pandas
+boto3
+fsspec
+altair_saver
+altair
+webdriver_manager
+seaborn
+selenium
+matplotlib
+toolz
