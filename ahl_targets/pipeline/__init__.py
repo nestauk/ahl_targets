@@ -12,3 +12,14 @@ for folder in output_subdirs:
         parents=True,
         exist_ok=True,
     )
+
+input_subdirs = [
+    "processed",
+    "raw",
+]
+
+for folder in input_subdirs:
+    Path(PROJECT_DIR / "inputs" / f"{folder}").mkdir(
+        parents=True,
+        exist_ok=True,
+    )

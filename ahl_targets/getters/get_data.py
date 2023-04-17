@@ -7,7 +7,7 @@ from ahl_targets.utils.create_tables import product_table
 import os.path
 
 
-def purchase_records():
+def purchase_records() -> pd.DataFrame:
     """
       Reads the purchase records file. As file too slow to load from s3, first save
       the file in inputs/data/.
@@ -19,7 +19,7 @@ def purchase_records():
     return pd.read_csv(PROJECT_DIR / "inputs/raw/purchase_records.csv")
 
 
-def nutrition():
+def nutrition() -> pd.DataFrame:
     """
       Reads in dataset of purchase level nutritional information. As file too slow to load from s3, first save
       the file in inputs/data/.
@@ -31,7 +31,7 @@ def nutrition():
     )
 
 
-def purchase_subsets(date_period):
+def purchase_subsets(date_period: str) -> pd.DataFrame:
     """
       Reads in purchase_records.csv and creates subset of purchase records file by defined month.
       First checks if files exists before creating.
@@ -50,7 +50,7 @@ def purchase_subsets(date_period):
         return subset_records
 
 
-def nutrition_subsets(date_period):
+def nutrition_subsets(date_period: str) -> pd.DataFrame:
     """
       Reads in the nutrition.csv and creates subset of by defined month.
       First checks if files exists before creating.
@@ -70,7 +70,7 @@ def nutrition_subsets(date_period):
         return subset
 
 
-def product_master():
+def product_master() -> pd.DataFrame:
     """
       Reads the product master file.
       First checks if its saved locally and reads from s3 if it isn't.
@@ -90,7 +90,7 @@ def product_master():
         )
 
 
-def val_fields():
+def val_fields() -> pd.DataFrame:
     """
       Reads in dataset of codes to merge product master and uom information.
       First checks if its saved locally and reads from s3 if it isn't.
@@ -110,7 +110,7 @@ def val_fields():
         )
 
 
-def uom():
+def uom() -> pd.DataFrame:
     """
       Reads in dataset of product measurement information.
       First checks if its saved locally and reads from s3 if it isn't.
@@ -130,7 +130,7 @@ def uom():
         )
 
 
-def product_codes():
+def product_codes() -> pd.DataFrame:
     """
       Reads in dataset which contains the codes to link products to category information.
       First checks if its saved locally and reads from s3 if it isn't.
@@ -150,7 +150,7 @@ def product_codes():
         )
 
 
-def product_values():
+def product_values() -> pd.DataFrame:
     """
       Reads in dataset containing the product category information.
       First checks if its saved locally and reads from s3 if it isn't.
@@ -170,7 +170,7 @@ def product_values():
         )
 
 
-def product_attribute():
+def product_attribute() -> pd.DataFrame:
     """
       Reads in dataset containing information on the product attributes.
       First checks if its saved locally and reads from s3 if it isn't.
@@ -190,7 +190,7 @@ def product_attribute():
         )
 
 
-def household_master():
+def household_master() -> pd.DataFrame:
     """
       Reads in dataset of household information.
       First checks if its saved locally and reads from s3 if it isn't.
@@ -210,7 +210,7 @@ def household_master():
         )
 
 
-def household_ind():
+def household_ind() -> pd.DataFrame:
     """Reads in dataset of information about each household member.
        First checks if its saved locally and reads from s3 if it isn't.
 
@@ -230,7 +230,7 @@ def household_ind():
         )
 
 
-def demog_coding():
+def demog_coding() -> pd.DataFrame:
     """
       Reads in dataset of codes per household that links to demographic information.
       First checks if its saved locally and reads from s3 if it isn't.
@@ -250,7 +250,7 @@ def demog_coding():
         )
 
 
-def demog_val():
+def demog_val() -> pd.DataFrame:
     """
       Reads in dataset of demographic values per code.
       First checks if its saved locally and reads from s3 if it isn't.
@@ -270,10 +270,12 @@ def demog_val():
         )
 
 
-def panel_weights():
+def panel_weights() -> pd.DataFrame:
     """
     Reads the panel weights file.
     First checks if its saved locally and reads from s3 if it isn't.
+    Args: None
+    Returns: pd.DataFrame: demographic weights by period
 
     """
     file_path = PROJECT_DIR / "inputs/raw/panel_demographic_weights_period.csv"
@@ -290,10 +292,12 @@ def panel_weights():
         )
 
 
-def panel_weights_year():
+def panel_weights_year() -> pd.DataFrame:
     """
     Reads the panel weights file.
     First checks if its saved locally and reads from s3 if it isn't.
+    Args: None
+    Returns: pd.DataFrame: demographic weights for the year
 
     """
     file_path = PROJECT_DIR / "inputs/raw/panel_demographic_weights_year.csv"
@@ -311,7 +315,9 @@ def panel_weights_year():
 
 
 def product_metadata() -> pd.DataFrame:
-    """Table combining all the product metadata"""
+    """Table combining all the product metadata
+    Args: None
+    Returns: pd.DataFrame: table with unique prduct codes and characteristics"""
 
     return pipe(
         product_table(
@@ -328,7 +334,7 @@ def product_metadata() -> pd.DataFrame:
     )
 
 
-def purchase_records_volume():
+def purchase_records_volume() -> pd.DataFrame:
     """
     Getter for the copy of purchase record with imputed weights.
     Args:
@@ -340,7 +346,7 @@ def purchase_records_volume():
     return pd.read_csv(PROJECT_DIR / "inputs/processed/pur_rec_volume.csv").iloc[:, 1:]
 
 
-def purchase_records_updated():
+def purchase_records_updated() -> pd.DataFrame:
     """
     Getter for the copy of purchase record with imputed weights.
     Cleaned to format of purchase records but with reported volume added.
@@ -355,7 +361,7 @@ def purchase_records_updated():
     ).rename({"reported_volume_up": "Reported Volume", "volume_up": "Volume"}, axis=1)
 
 
-def product_measurement():
+def product_measurement() -> pd.DataFrame:
     """File containing all available measurements per product
     Args: None
     Returns: pd.DataFrame: list of product measurements
@@ -377,7 +383,7 @@ def product_measurement():
         )
 
 
-def store_itemisation_lines():
+def store_itemisation_lines() -> pd.DataFrame:
     """
       Reads the store_itemisation_lines file.
     Args:
@@ -388,7 +394,7 @@ def store_itemisation_lines():
     return pd.read_csv(PROJECT_DIR / "inputs/raw/store_itemisation_lines.csv")
 
 
-def store_itemisation_coding():
+def store_itemisation_coding() -> pd.DataFrame:
     """
       Reads the store_itemisation_coding file.
     Args:
@@ -399,7 +405,7 @@ def store_itemisation_coding():
     return pd.read_csv(PROJECT_DIR / "inputs/raw/store_itemisation_coding.csv")
 
 
-def panel_kcal_deciles():
+def panel_kcal_deciles() -> pd.DataFrame:
     """
       Reads the file containing the kcal deciles.
     Args:
@@ -410,13 +416,17 @@ def panel_kcal_deciles():
     return pd.read_csv(PROJECT_DIR / "outputs/processed/hh_kcal_groups.csv")
 
 
-def get_imputed_bmi():
-    """Reads the file containing the imputed BMI values"""
+def get_imputed_bmi() -> pd.DataFrame:
+    """Reads the file containing the imputed BMI values
+    Args: None
+    Returns: pd.DataFrame: file with imputed bmi values"""
     return pd.read_csv(PROJECT_DIR / "outputs/processed/imputed_bmi.csv")
 
 
 def product_type() -> dict:
-    """Read manually labeled file with product types (ingredient, staple, discretionary)"""
+    """Read manually labeled file with product types (ingredient, staple, discretionary)
+    Args: None
+    Returns: pd.DataFrame: file with product taxonomy by type"""
     file_path = PROJECT_DIR / "inputs/processed/product_type.csv"
 
     # Check if file already exists:
@@ -435,8 +445,10 @@ def product_type() -> dict:
     return dat.set_index("key")["type"].to_dict()
 
 
-def get_gravity():
-    """Returns a dataframe with specific gravities for drink products"""
+def get_gravity() -> pd.DataFrame:
+    """Returns a dataframe with specific gravities for drink products
+    Args: None
+    Returns: pd.DataFrame: specific gravity file manually compiled"""
     file_path = PROJECT_DIR / "inputs/processed/specific_gravity.csv"
     # Check if file already exists:
     if os.path.isfile(file_path):
@@ -449,8 +461,10 @@ def get_gravity():
         )
 
 
-def get_fvn():
-    """Returns a datafframe with foot, veg, nuts points for NPM score"""
+def get_fvn() -> pd.DataFrame:
+    """Returns a dataframe with foot, veg, nuts points for NPM score
+    Args: None
+    Returns: pd.DataFrame: FVN scores by catgory as supplied by provider"""
     file_path = PROJECT_DIR / "inputs/processed/fvn_points.csv"
     # Check if file already exists:
     if os.path.isfile(file_path):
