@@ -4,7 +4,7 @@ from altair import Chart
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 import os
-from ahl_understanding_shopping_behaviours import PROJECT_DIR
+from ahl_targets import PROJECT_DIR
 
 FIG_PATH = f"{PROJECT_DIR}/outputs/figures"
 
