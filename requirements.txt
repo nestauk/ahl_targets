@@ -5,6 +5,6 @@ altair_saver
 altair
 webdriver_manager
 seaborn
-"selenium<4.3.0"
+selenium<4.3.0
 matplotlib
 toolz
