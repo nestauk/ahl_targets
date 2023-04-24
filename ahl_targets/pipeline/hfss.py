@@ -110,7 +110,7 @@ def kcal_per_100g_drinks(df):
 
 def nut_per_100g_drinks(df, col):
     """Returns series with macro per 100 g"""
-    return (100 * (df[col] / df["volume_up"])) * df["sg"]
+    return 100 * (df[col] / (df["volume_up"] * df["sg"]))
 
 
 def drink_per_100g(prod_lt_nut):
