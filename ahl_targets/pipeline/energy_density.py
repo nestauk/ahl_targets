@@ -218,4 +218,4 @@ def decile(df_col: pd.Series) -> pd.Series:
     Returns:
         pd.Series: Series with deciles of ED
     """
-    return pd.qcut(df_col, q=10, labels=False)
+    return pd.qcut(df_col, q=10, labels=list(np.arange(1, 11)))
