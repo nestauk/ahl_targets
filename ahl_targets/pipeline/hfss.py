@@ -105,12 +105,12 @@ def prod_litres(prod_tbl, gravity, nut_rec):
 
 def kcal_per_100g_drinks(df):
     """Returns series with kcal per 100 g"""
-    return (df["Energy KCal"] / df["volume_up"] * 10) * df["sg"]
+    return df["Energy KCal"] / (10 * df["volume_up"] * df["sg"])
 
 
 def nut_per_100g_drinks(df, col):
     """Returns series with macro per 100 g"""
-    return (100 * (df[col] / df["volume_up"])) * df["sg"]
+    return 100 * (df[col] / (df["volume_up"] * df["sg"]))
 
 
 def drink_per_100g(prod_lt_nut):
@@ -122,9 +122,6 @@ def drink_per_100g(prod_lt_nut):
     prod_lt_nut["sod_per_100g"] = nut_per_100g_drinks(prod_lt_nut, "Sodium KG")
     prod_lt_nut["fibre_per_100g"] = nut_per_100g_drinks(prod_lt_nut, "Fibre KG Flag")
     prod_lt_nut["sug_per_100g"] = nut_per_100g_drinks(prod_lt_nut, "Sugar KG")
-
-    # remove implausible values
-    prod_lt_nut = prod_lt_nut[prod_lt_nut["kcal_per_100g"] < 900].copy()
 
     return prod_lt_nut
 
