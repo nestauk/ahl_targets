@@ -1,16 +1,18 @@
 from ahl_targets import PROJECT_DIR
 from ahl_targets.utils import create_tables as table
+from ahl_targets.pipeline import hfss
 import pandas as pd
 import numpy as np
 
 
 def prod_energy_100(
     cat: str,
-    pur_recs,
-    nut_recs,
-    prod_meta,
-    prod_meas,
-):
+    pur_recs: pd.DataFrame,
+    nut_recs: pd.DataFrame,
+    prod_meta: pd.DataFrame,
+    prod_meas: pd.DataFrame,
+    gravity: pd.DataFrame,
+) -> pd.DataFrame:
     """
     Creates a unique list of product with kcal/100ml(g). Excludes products with a different unit of
     measurement to their category (based on the 75% rule).
@@ -21,6 +23,7 @@ def prod_energy_100(
         nut_recs (pd.DataFrame): Pandas dataframe with per purchase nutritional information
         prod_meta (pd.DataFrame): Pandas dataframe with product descriptions
         prod_meas (pd.DataFrame): Pandas dataframe with additional conversions to g and ml for unit and serving products
+        gravity (pd.DataFrame): Pandas dataframe with gravity values per product category
     Returns:
         pd.DataFrame: Dataframe with average kcal/100ml(gr) and reported volume
     """
@@ -141,27 +144,67 @@ def prod_energy_100(
         )
         .drop(["Purchase Number", "Purchase Period"], axis=1)
     )
-    # generate value of kcal per 100ml(g)
-    pur_recs_latest["kcal_100g_ml"] = pur_recs_latest["Energy KCal"] / (
-        pur_recs_latest["volume_up"] * 10
-    )
 
-    # anything with more than 900kcal per 100ml(g) is implausible because of the energy density of fat being 9kcal/g
-    pur_recs_latest = pur_recs_latest[pur_recs_latest["kcal_100g_ml"] <= 900].copy()
-
-    # unique dataframe of product with kcal into
-    density_prod = pur_recs_latest[["Product Code", "kcal_100g_ml"]].drop_duplicates(
-        subset="Product Code"
+    # Handle litres and kilos seperately
+    pur_recs_latest_litres = (
+        pur_recs_latest[pur_recs_latest.reported_volume_up == "Litres"]
+        .copy()
+        .merge(
+            prod_meta[["product_code", "rst_4_extended"]].copy(),
+            how="left",
+            left_on="Product Code",
+            right_on="product_code",
+        )
+        .drop("product_code", axis=1)
     )
+    pur_recs_latest_litres = hfss.specific_gravity(
+        pur_recs_latest_litres.copy(), gravity
+    )
+    pur_recs_latest_kilos = pur_recs_latest[
+        pur_recs_latest.reported_volume_up == "Kilos"
+    ].copy()
+
+    # generate value of kcal per 100g
+    pur_recs_latest_kilos["kcal_100g"] = pur_recs_latest_kilos["Energy KCal"] / (
+        pur_recs_latest_kilos["volume_up"] * 10
+    )
+    pur_recs_latest_litres["kcal_100g"] = hfss.kcal_per_100g_drinks(
+        pur_recs_latest_litres
+    )
+    # Join dfs back together
+    pur_recs_latest_grams = pd.concat(
+        [pur_recs_latest_kilos, pur_recs_latest_litres], axis=0
+    )
+    # unique dataframe of product with kcal info
+    pur_recs_latest_grams.drop_duplicates(subset="Product Code", inplace=True)
 
     # merge kcal info with sales
-    return pur_rec_select.merge(density_prod, on="Product Code")
+    return pur_rec_select.merge(
+        pur_recs_latest_grams[["Product Code", "kcal_100g"]].copy(), on="Product Code"
+    )
+
+    # PREVIOUS CODE
+    # # generate value of kcal per 100ml(g)
+    # pur_recs_latest["kcal_100g_ml"] = pur_recs_latest["Energy KCal"] / (
+    #     pur_recs_latest["volume_up"] * 10
+    # )
+
+    # # anything with more than 900kcal per 100ml(g) is implausible because of the energy density of fat being 9kcal/g
+    # pur_recs_latest = pur_recs_latest[pur_recs_latest["kcal_100g_ml"] <= 900].copy()
+
+    # # unique dataframe of product with kcal into
+    # density_prod = pur_recs_latest[["Product Code", "kcal_100g_ml"]].drop_duplicates(
+    #     subset="Product Code"
+    # )
+
+    # # merge kcal info with sales
+    # return pur_rec_select.merge(density_prod, on="Product Code")
 
 
 def cat_energy_100(
     cat: str,
     pur_final: pd.DataFrame,
-):
+) -> pd.DataFrame:
     """
     Return simple and weighted kcal/100ml(g) aggregate by product category
     Args:
@@ -197,7 +240,7 @@ def cat_energy_100(
     return s_mean.merge(w_mean[[cat, "kcal_100_w"]], on=cat)
 
 
-def score(df_col: pd.Series):
+def score(df_col: pd.Series) -> pd.DataFrame:
     """
     Generate energy density category variable based on standard thresholds.
     Args:
