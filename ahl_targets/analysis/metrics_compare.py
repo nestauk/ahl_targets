@@ -38,14 +38,19 @@ def npm_ed_product_scatter(
     Returns:
         Altair scatter plot
     """
+    product_metrics_df["hfss"] = (
+        product_metrics_df["in_scope"] * product_metrics_df[size_col]
+    )
     scatter_plot_df = (
-        product_metrics_df[["npm_score", "ed_deciles", size_col, "in_scope"]]
+        product_metrics_df[["npm_score", "ed_deciles", size_col, "hfss"]]
         .copy()
         .groupby(["npm_score", "ed_deciles"])
         .sum()
         .reset_index()
     )
-    scatter_plot_df["hfss"] = scatter_plot_df["in_scope"] / scatter_plot_df[size_col]
+    scatter_plot_df["perc_hfss"] = (
+        scatter_plot_df["hfss"] / scatter_plot_df[size_col] * 100
+    )
     scatter_plot_df["Percent " + size_col] = (
         scatter_plot_df[size_col] / scatter_plot_df[size_col].sum()
     ) * 100
@@ -57,12 +62,14 @@ def npm_ed_product_scatter(
             x=alt.X("npm_score", title="NPM score"),
             y=alt.Y("ed_deciles", title="Energy density deciles"),
             size=alt.Size(
-                size_col, title="Percent " + size_col, scale=alt.Scale(range=scale_list)
+                "Percent " + size_col,
+                title="Percent " + size_col,
+                scale=alt.Scale(range=scale_list),
             ),
             color=alt.Color(
-                "hfss",
+                "perc_hfss",
                 scale=alt.Scale(scheme="purplegreen", domainMid=0.00001),
-                title="Percent " + size_col + " HFSS",
+                title="Percent HFSS",
             ),
         )
         .properties(width=size_list[0], height=size_list[1])
@@ -78,7 +85,7 @@ def npm_ed_product_scatter(
 
 
 if __name__ == "__main__":
-    logging.info("Running metrics_compare.py, takes about XXX mins to run.")
+    logging.info("Running metrics_compare.py, takes about 10 mins to run.")
 
     logging.info("Loading data...")
     # Get data
