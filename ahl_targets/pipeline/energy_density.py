@@ -97,6 +97,10 @@ def prod_energy_100(
         .reset_index()
     )
 
+    # Add missing column if no missing values for volume
+    if "missing" not in level_pivot.columns:
+        level_pivot["missing"] = 0
+
     # determine which measurement is used to generate average
     level_pivot["tot"] = (
         level_pivot["Kilos"] + level_pivot["Litres"] + level_pivot["missing"]
