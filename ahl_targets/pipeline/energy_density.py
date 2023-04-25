@@ -168,6 +168,9 @@ def prod_energy_100(
     pur_recs_latest_kilos["kcal_100g"] = pur_recs_latest_kilos["Energy KCal"] / (
         pur_recs_latest_kilos["volume_up"] * 10
     )
+    pur_recs_latest_kilos = pur_recs_latest_kilos[
+        pur_recs_latest_kilos["kcal_100g"] <= 900
+    ].copy()
     pur_recs_latest_litres["kcal_100g"] = hfss.kcal_per_100g_drinks(
         pur_recs_latest_litres
     )
