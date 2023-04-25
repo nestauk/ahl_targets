@@ -8,3 +8,4 @@ seaborn
 selenium<4.3.0
 matplotlib
 toolz
+statsmodels
