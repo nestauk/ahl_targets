@@ -186,23 +186,6 @@ def prod_energy_100(
         pur_recs_latest_grams[["Product Code", "kcal_100g"]].copy(), on="Product Code"
     )
 
-    # PREVIOUS CODE
-    # # generate value of kcal per 100ml(g)
-    # pur_recs_latest["kcal_100g_ml"] = pur_recs_latest["Energy KCal"] / (
-    #     pur_recs_latest["volume_up"] * 10
-    # )
-
-    # # anything with more than 900kcal per 100ml(g) is implausible because of the energy density of fat being 9kcal/g
-    # pur_recs_latest = pur_recs_latest[pur_recs_latest["kcal_100g_ml"] <= 900].copy()
-
-    # # unique dataframe of product with kcal into
-    # density_prod = pur_recs_latest[["Product Code", "kcal_100g_ml"]].drop_duplicates(
-    #     subset="Product Code"
-    # )
-
-    # # merge kcal info with sales
-    # return pur_rec_select.merge(density_prod, on="Product Code")
-
 
 def cat_energy_100(
     cat: str,
@@ -219,14 +202,14 @@ def cat_energy_100(
 
     # simple mean
     s_mean = (
-        pur_final.groupby([cat, "chosen_unit"])["kcal_100g_ml"]
+        pur_final.groupby([cat, "chosen_unit"])["kcal_100g"]
         .mean()
         .reset_index(name="kcal_100_s")
     )
 
     # weighted mean
     pur_final["cross_prd"] = (
-        pur_final["kcal_100g_ml"] * pur_final["total_sale"]
+        pur_final["kcal_100g"] * pur_final["total_sale"]
     )  # cross product
     kcal = (
         pur_final.groupby([cat])["cross_prd"].sum().reset_index(name="sum_cross_prd")
