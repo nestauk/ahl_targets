@@ -6,6 +6,7 @@ from ahl_targets.pipeline import (
     energy_density as energy,
     hfss,
 )
+from ahl_targets.utils import create_tables as tables
 from ahl_targets.getters import get_data
 from ahl_targets.utils.plotting import configure_plots
 from ahl_targets.utils.altair_save_utils import (
@@ -23,6 +24,7 @@ alt.data_transformers.enable("default", max_rows=None)
 def npm_ed_product_scatter(
     product_metrics_df: pd.DataFrame,
     data_subset: str,
+    size_col: str,
     size_list: list,
     scale_list: list,
 ):
@@ -30,19 +32,23 @@ def npm_ed_product_scatter(
     Args:
         product_metrics_df (pd.Dataframe): dataframe of products with npm, hfss and energy density info
         data_subset (str): Name of product category subset if using for plot title (eg 'chocolate confectionery)
+        size_col (str): Name of column to use as size of circle
         size_list (list): Width and height of plot
         scale_list (list): Min and max values for circles
     Returns:
         Altair scatter plot
     """
     scatter_plot_df = (
-        product_metrics_df[["npm_score", "ed_deciles", "count", "in_scope"]]
+        product_metrics_df[["npm_score", "ed_deciles", size_col, "in_scope"]]
         .copy()
         .groupby(["npm_score", "ed_deciles"])
         .sum()
         .reset_index()
     )
-    scatter_plot_df["hfss"] = scatter_plot_df["in_scope"] / scatter_plot_df["count"]
+    scatter_plot_df["hfss"] = scatter_plot_df["in_scope"] / scatter_plot_df[size_col]
+    scatter_plot_df["Percent " + size_col] = (
+        scatter_plot_df[size_col] / scatter_plot_df[size_col].sum()
+    ) * 100
 
     fig = (
         alt.Chart(scatter_plot_df)
@@ -51,20 +57,19 @@ def npm_ed_product_scatter(
             x=alt.X("npm_score", title="NPM score"),
             y=alt.Y("ed_deciles", title="Energy density deciles"),
             size=alt.Size(
-                "count", title="Number of products", scale=alt.Scale(range=scale_list)
+                size_col, title="Percent " + size_col, scale=alt.Scale(range=scale_list)
             ),
             color=alt.Color(
                 "hfss",
                 scale=alt.Scale(scheme="purplegreen", domainMid=0.00001),
-                title="Percent products HFSS",
+                title="Percent " + size_col + " HFSS",
             ),
         )
         .properties(width=size_list[0], height=size_list[1])
     )
-
     return configure_plots(
         fig,
-        data_subset + "Avg Energy Density vs Avg NPM score per product",
+        data_subset + "Avg Energy Density vs Avg NPM score - Percent " + size_col,
         " ",
         16,
         14,
@@ -73,7 +78,7 @@ def npm_ed_product_scatter(
 
 
 if __name__ == "__main__":
-    logging.info("Running metrics_compare.py, takes about 7 mins to run.")
+    logging.info("Running metrics_compare.py, takes about XXX mins to run.")
 
     logging.info("Loading data...")
     # Get data
@@ -87,6 +92,7 @@ if __name__ == "__main__":
     gravity = get_data.get_gravity()
     fvn = get_data.get_fvn()
 
+    logging.info("Creating Energy density table...")
     # Create product level energy density table
     df_prod_ed = energy.prod_energy_100(
         "rst_4_market",
@@ -98,6 +104,7 @@ if __name__ == "__main__":
     df_prod_ed["ed_deciles"] = energy.decile(
         df_prod_ed["kcal_100g_ml"],
     )
+    logging.info("Creating NPM table...")
     # Create NPM table
     npm = hfss.npm_score_unique(
         prod_table,
@@ -111,33 +118,77 @@ if __name__ == "__main__":
         "Score",
     )
 
+    logging.info("Merging tables...")
     # Merge tables and create subset
-    pur_store_info = npm.merge(
-        df_prod_ed, how="inner", left_on="product_code", right_on="product_code"
-    ).drop("Product Code", axis=1)
-    pur_store_info = product.in_scope(
-        pur_store_info.copy(),
+    pur_prod_info = npm.merge(
+        df_prod_ed,
+        how="inner",
+        left_on="product_code",
+        right_on="product_code",
+    ).drop("product_code", axis=1)
+    pur_prod_info = product.in_scope(
+        pur_prod_info.copy(),
     )
-    pur_store_info["count"] = 1
-    conf_purchases = pur_store_info[
-        pur_store_info.rst_4_market_sector == "Take Home Confectionery"
+
+    logging.info("Adding kcal and product count...")
+    # Clean purchases and merge with nutrition data
+    pur_nut = tables.nutrition_merge(
+        nut_recs,
+        pur_recs[pur_recs["Reported Volume"].notna()].copy(),
+        ["Energy KCal"],
+    )[["Product Code", "Energy KCal"]].copy()
+    pur_prod_info = pur_prod_info.copy().merge(
+        pur_nut.groupby(["Product Code"]).sum().reset_index(),
+        how="left",
+        on="Product Code",
+    )
+    pur_prod_info["products"] = 1
+
+    # Confectionery subset
+    conf_purchases = pur_prod_info[
+        pur_prod_info.rst_4_market_sector == "Take Home Confectionery"
     ].copy()
 
+    logging.info("Creating and saving plots...")
     # Running function to plot data
     webdr = google_chrome_driver_setup()
 
-    # All products
+    # All products - prod count
     save_altair(
-        npm_ed_product_scatter(pur_store_info, "", [700, 500], [10, 600]),
+        npm_ed_product_scatter(pur_prod_info, "", "products", [700, 500], [10, 600]),
         "ed_npm_all_prods",
         driver=webdr,
     )
 
-    # Example category
+    # Example category - prod count
     save_altair(
         npm_ed_product_scatter(
-            conf_purchases, "Chocoloate confectionery: ", [400, 300], [40, 600]
+            conf_purchases,
+            "Chocoloate confectionery: ",
+            "products",
+            [400, 300],
+            [40, 600],
         ),
         "ed_npm_chocolate_conf",
+        driver=webdr,
+    )
+
+    # All products - perc kcal
+    save_altair(
+        npm_ed_product_scatter(pur_prod_info, "", "Energy KCal", [700, 500], [10, 600]),
+        "ed_npm_all_prods_kcal",
+        driver=webdr,
+    )
+
+    # Example category - perc kcal
+    save_altair(
+        npm_ed_product_scatter(
+            conf_purchases,
+            "Chocoloate confectionery: ",
+            "Energy KCal",
+            [400, 300],
+            [40, 600],
+        ),
+        "ed_npm_chocolate_conf_kcal",
         driver=webdr,
     )
