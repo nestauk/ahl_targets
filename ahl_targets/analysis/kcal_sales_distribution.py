@@ -11,7 +11,9 @@ from ahl_targets.utils.altair_save_utils import (
     google_chrome_driver_setup,
     save_altair,
 )
+from altair.expr import datum
 import pandas as pd
+import numpy as np
 import altair as alt
 import logging
 
@@ -31,7 +33,7 @@ def category_avg_df(
         pd.DataFrame: combined category and total kcal info
     """
     category_df["type"] = category_name
-    avg_df["type"] = "Average"
+    avg_df["type"] = "All products"
     return pd.concat([category_df, avg_df], axis=0)
 
 
@@ -40,6 +42,7 @@ def energy_df(
     nut_recs: pd.DataFrame,
     prod_table: pd.DataFrame,
     prod_meas: pd.DataFrame,
+    gravity: pd.DataFrame,
 ) -> pd.DataFrame:
     """Creates energy density info dataframe per product.
     Args:
@@ -58,11 +61,12 @@ def energy_df(
         nut_recs,
         prod_table,
         prod_meas,
+        gravity,
     )
-    df_prod_ed["energy_density_cat"] = energy.score(df_prod_ed["kcal_100g_ml"])
+    df_prod_ed["energy_density_cat"] = energy.score(df_prod_ed["kcal_100g"])
     df_prod_ed["ed_deciles"] = (
         energy.decile(
-            df_prod_ed["kcal_100g_ml"],
+            df_prod_ed["kcal_100g"],
         )
         + 1
     )
@@ -81,9 +85,7 @@ def perc_kcal(pur_df: pd.DataFrame, category_col: str) -> pd.DataFrame:
         pur_df,
         category_col,
     )
-    gross_kcal["percent"] = (
-        gross_kcal["gross_kcal"] / gross_kcal["gross_kcal"].sum()
-    ) * 100
+    gross_kcal["percent"] = gross_kcal["gross_kcal"] / gross_kcal["gross_kcal"].sum()
     return gross_kcal
 
 
@@ -108,18 +110,82 @@ def kcal_percent_bar_plot(
         pur_store_info,
         category_col,
     )
-    fig = (
+    base = (
+        alt.Chart(
+            percent_kcal_df.sort_values(by="percent", ascending=False).head(num_cats)
+        )
+        .encode(
+            x=alt.X("percent", title="Percentage", axis=alt.Axis(format="%")),
+            y=alt.Y(category_col, sort="-x", title=category_name),
+            color=alt.value(colour),
+            text=alt.Text("percent", format=".1%"),
+        )
+        .properties(width=plot_size[0], height=plot_size[1])
+    )
+    fig = base.mark_bar() + base.mark_text(align="left", dx=2)
+    return save_altair(
+        configure_plots(
+            fig,
+            "Percent of kcal " + category_name,
+            " ",
+            16,
+            14,
+            14,
+        ),
+        category_name + "_bar_kcal",
+        driver=webdr,
+    )
+
+
+def kcal_percent_bar_plot_stacked(
+    pur_store_info: pd.DataFrame,
+    category_col: str,
+    sub_category_col: str,
+    category_name: str,
+    num_cats: int,
+    plot_size: list,
+):
+    """Plots percent of kcal per specified category as bar chart - stacked by type.
+    Args:
+        pur_store_info (pd.Dataframe): dataframe with kcal, weights and category info per purchase
+        category_col (str): Name of category column to use
+        sub_category_col (str): Name of sub category column to use
+        category_name (str): Name of category to use as chart titles
+        colour (str): Hex colour code to use
+        num_cats (int): Number of category values to show in plot
+        plot_size (list): Width and height of plot as list
+    """
+    percent_kcal_df = perc_kcal(
+        pur_store_info,
+        [category_col, sub_category_col],
+    )
+    bars = (
         alt.Chart(
             percent_kcal_df.sort_values(by="percent", ascending=False).head(num_cats)
         )
         .mark_bar()
         .encode(
-            x=alt.X("percent", title="Percentage"),
+            x=alt.X("sum(percent)", title="Percentage", axis=alt.Axis(format="%")),
             y=alt.Y(category_col, sort="-x", title=category_name),
-            color=alt.value(colour),
+            color=sub_category_col,
         )
         .properties(width=plot_size[0], height=plot_size[1])
     )
+
+    text = (
+        alt.Chart(
+            percent_kcal_df.sort_values(by="percent", ascending=False).head(num_cats)
+        )
+        .mark_text(align="right", dx=30)
+        .encode(
+            y=alt.Y(category_col, sort="-x", title=category_name),
+            x=alt.X("sum(percent)", title="Percentage", axis=alt.Axis(format="%")),
+            text=alt.Text("sum(percent)", format=".1%"),
+        )
+    )
+
+    fig = bars + text
+
     return save_altair(
         configure_plots(
             fig,
@@ -147,7 +213,7 @@ def pie_percent_kcal(
         pur_store_info,
         category_col,
     )
-    percent_kcal_df["percent"] = percent_kcal_df["percent"].round(0)
+    percent_kcal_df["percent"] = (percent_kcal_df["percent"] * 100).round(0)
     base = (
         alt.Chart(percent_kcal_df)
         .mark_arc()
@@ -221,14 +287,16 @@ def plots_energy_category(
         .mark_line(point=True)
         .encode(
             x=alt.X("ed_deciles:N", title="Energy density deciles"),
-            y=alt.Y("percent:Q", title="Percent"),
+            y=alt.Y("percent:Q", title="Percent", axis=alt.Axis(format="%")),
             color="type:N",
         )
         .properties(width=300, height=300)
     )
     bar_percent_plot = configure_plots(
         bar_percent,
-        "Percent kcal " + category_name + " vs avg across energy density deciles",
+        "Percent kcal "
+        + category_name
+        + " compared to all products across energy density deciles",
         " ",
         16,
         14,
@@ -264,13 +332,18 @@ def plot_inscope_bar(is_kcal: pd.DataFrame, df: pd.DataFrame, category_name: str
     fig = (
         alt.Chart(combined_df)
         .mark_bar()
-        .encode(x="type:O", y="percent:Q", color="type:N", column="in_scope:N")
+        .encode(
+            x="type:O",
+            y=alt.Y("percent:Q", axis=alt.Axis(format="%")),
+            color="type:N",
+            column="in_scope:N",
+        )
         .properties(width=70, height=200)
     )
     return save_altair(
         configure_plots(
             fig,
-            "Percent kcal " + category_name + " vs avg in_scope",
+            "Percent kcal " + category_name + " compared to all products in_scope",
             " ",
             16,
             14,
@@ -304,16 +377,18 @@ def plot_npm_bar(category_df: pd.DataFrame, npm_kcal: pd.DataFrame, category_nam
         .mark_line(point=True)
         .encode(
             x=alt.X("npm_score:Q", title="NPM score"),
-            y=alt.Y("percent:Q", title="Percent"),
+            y=alt.Y("percent:Q", title="Percent", axis=alt.Axis(format="%")),
             color="type:N",
         )
         .properties(width=500, height=300)
     )
+
     line = (
         alt.Chart(pd.DataFrame({"x": [4]}))
         .mark_rule()
         .encode(x="x", strokeDash=alt.value([5, 5]))
     )
+
     figure = fig + line
 
     return save_altair(
@@ -326,6 +401,77 @@ def plot_npm_bar(category_df: pd.DataFrame, npm_kcal: pd.DataFrame, category_nam
             14,
         ),
         category_name + "_npm_bar",
+        driver=webdr,
+    )
+
+
+def heatmap_category_kcal(
+    pur_info: pd.DataFrame,
+    category_col: str,
+    metric_col: str,
+    plot_size: list,
+    file_name: str,
+    cat_name: str,
+    metric_name: str,
+):
+    """Plots heatmap of % kcal for category and metric.
+    Args:
+        pur_info (pd.Dataframe): dataframe
+        category_col (str): Name of category column
+        metric_col (str): Name of metric column
+        plot_size (list): Width and height of the plot
+        file_name (str): Name of file
+        cat_name (str): Name of category (for axis title)
+        metric_name (str) Name of metric (for axis title)
+    """
+
+    pur_store_perc = (
+        pur_info.groupby([category_col, metric_col])["gross_kcal"].sum().reset_index()
+    )
+    pur_store_perc["Percent Kcal"] = (
+        100
+        * pur_store_perc["gross_kcal"]
+        / pur_store_perc.groupby(category_col)["gross_kcal"].transform("sum")
+    ).round(0)
+
+    heat = (
+        alt.Chart(pur_store_perc)
+        .mark_rect()
+        .encode(
+            x=alt.X(metric_col + ":N", title=metric_name),
+            y=alt.Y(category_col, title=cat_name),
+            color=alt.Color("Percent Kcal:Q"),
+        )
+        .properties(width=plot_size[0], height=plot_size[1])
+    )
+
+    text = (
+        alt.Chart(pur_store_perc)
+        .mark_text(baseline="middle")
+        .encode(
+            x=alt.X(metric_col + ":N"),
+            y=alt.Y(category_col),
+            text="Percent Kcal:Q",
+            color=alt.condition(
+                datum["Percent Kcal"] < (pur_store_perc["Percent Kcal"].max()) / 2,
+                alt.value("black"),
+                alt.value("white"),
+            ),
+        )
+    )
+
+    fig = heat + text
+
+    return save_altair(
+        configure_plots(
+            fig,
+            "Percent of kcal - " + cat_name + " / " + metric_name,
+            " ",
+            16,
+            14,
+            14,
+        ),
+        file_name,
         driver=webdr,
     )
 
@@ -352,11 +498,24 @@ if __name__ == "__main__":
         nut_recs,
         prod_table,
         prod_meas,
+        gravity,
     )
     store_levels = stores.taxonomy(
         store_coding,
         store_lines,
     )
+    # Recoding hard discounters as aldi and lidl
+    store_levels["itemisation_level_3"] = np.where(
+        store_levels["itemisation_level_4"] == "Aldi",
+        "Aldi",
+        store_levels["itemisation_level_3"],
+    )
+    store_levels["itemisation_level_3"] = np.where(
+        store_levels["itemisation_level_4"] == "Lidl",
+        "Lidl",
+        store_levels["itemisation_level_3"],
+    )
+
     # Clean purchases and merge with nutrition data
     pur_nut = tables.nutrition_merge(
         nut_recs,
@@ -393,7 +552,7 @@ if __name__ == "__main__":
                     "rst_4_market",
                     "rst_4_market_sector",
                     "energy_density_cat",
-                    "kcal_100g_ml",
+                    "kcal_100g",
                     "ed_deciles",
                     "manufacturer",
                 ]
@@ -442,38 +601,42 @@ if __name__ == "__main__":
         "npm_score",
     )
 
-    logging.info("Running functions to produce and save plots")
     # Load web-driver
     webdr = google_chrome_driver_setup()
+
+    pur_store_info["gross_kcal"] = (
+        pur_store_info["Energy KCal"] * pur_store_info["Gross Up Weight"]
+    )
 
     # Create and save plots
 
     # Food and drink categories
-    kcal_percent_bar_plot(
+    kcal_percent_bar_plot_stacked(
         pur_store_info,
         "rst_4_market",
+        "type",
         "category (top 30)",
-        "#EB003B",
         30,
-        [400, 600],
+        [450, 600],
     )
+
     # Brand
-    kcal_percent_bar_plot(
+    kcal_percent_bar_plot_stacked(
         pur_store_info,
         "manufacturer",
+        "type",
         "brand (top 30)",
-        "#0000FF",
         30,
-        [400, 600],
+        [450, 600],
     )
     # Store
-    kcal_percent_bar_plot(
+    kcal_percent_bar_plot_stacked(
         pur_store_info,
         "itemisation_level_3",
+        "type",
         "store",
-        "#0000FF",
         100,
-        [300, 500],
+        [350, 500],
     )
     # Store - tesco
     kcal_percent_bar_plot(
@@ -555,4 +718,24 @@ if __name__ == "__main__":
         breakfast_df.dropna(subset=["npm_score"]).copy(),
         npm_kcal,
         "Breakfast Cereals",
+    )
+
+    # Store heatmaps
+    heatmap_category_kcal(
+        pur_store_info,
+        "itemisation_level_3",
+        "ed_deciles",
+        [300, 400],
+        "ed_store_heat",
+        "Store",
+        "Energy density deciles",
+    )
+    heatmap_category_kcal(
+        pur_store_info,
+        "itemisation_level_3",
+        "npm_score",
+        [700, 400],
+        "npm_store_heat",
+        "Store",
+        "NPM score",
     )
