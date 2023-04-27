@@ -23,14 +23,32 @@ import numpy as np
 def select_dat(
     dat: pd.DataFrame,
     npm: int,
-):
+) -> pd.DataFrame:
+    """Subset data by npm
+
+    Args:
+        dat (pd.DataFrame): dataframe with average sales by npm
+        npm (int): npm score
+
+    Returns:
+        pd.Dataframe: df subset by npm
+    """
     return dat[dat["npm_score"] == npm]
 
 
 def make_dat(
     dat: pd.DataFrame,
     npm: int,
-):
+) -> pd.DataFrame:
+    """Generate table with mean share by retailers and lower and upper bounds
+
+    Args:
+        dat (pd.DataFrame): dataframe with average sales by npm
+        npm (int): npm score
+
+    Returns:
+        pd.DataFrame: table with mean share by retailers and lower and upper bounds
+    """
     sub_dat = select_dat(dat, npm)
     mean = sub_dat.groupby(["itemisation_level_3"])["share"].mean().reset_index()
     mean["mean"] = sub_dat["share"].mean()
@@ -46,11 +64,29 @@ def make_dat(
 def ref_line(
     dat: pd.DataFrame,
     npm: int,
-):
+) -> pd.DataFrame:
+    """Reference line for plotting
+
+    Args:
+        dat (pd.DataFrame): dataframe with average sales by npm
+        npm (int): npm score
+
+    Returns:
+        pd.DataFrame: single value with mean across all retailers
+    """
     return pd.DataFrame([[select_dat(dat, npm)["share"].mean()]], columns=["share"])
 
 
-def make_coef_plot(dat: pd.DataFrame, npm: int):
+def make_coef_plot(dat: pd.DataFrame, npm: int) -> alt.Chart:
+    """Generate scatter plot of kcal sales by retailee
+
+    Args:
+        dat (pd.DataFrame): dataframe with average sales by npm
+        npm (int): npm score
+
+    Returns:
+        alt.Chart: scatter plot of kcal sales by retailer for each NPM
+    """
     points = (
         alt.Chart(make_dat(dat, npm), title="NPM =" + str(npm))
         .mark_circle(size=60)
