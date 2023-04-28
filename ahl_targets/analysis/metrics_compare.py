@@ -55,6 +55,8 @@ def npm_ed_product_scatter(
         scatter_plot_df[size_col] / scatter_plot_df[size_col].sum()
     ) * 100
 
+    scatter_plot_df = scatter_plot_df[scatter_plot_df["Percent " + size_col] > 0].copy()
+
     fig = (
         alt.Chart(scatter_plot_df)
         .mark_circle()
@@ -107,9 +109,10 @@ if __name__ == "__main__":
         nut_recs,
         prod_table,
         prod_meas,
+        gravity,
     )
     df_prod_ed["ed_deciles"] = energy.decile(
-        df_prod_ed["kcal_100g_ml"],
+        df_prod_ed["kcal_100g"],
     )
     logging.info("Creating NPM table...")
     # Create NPM table
