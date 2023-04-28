@@ -428,11 +428,24 @@ def heatmap_category_kcal(
     pur_store_perc = (
         pur_info.groupby([category_col, metric_col])["gross_kcal"].sum().reset_index()
     )
+    # Fill missing NPM scores as zero
+    categories = list(range(-10, 31))
+    mux = pd.MultiIndex.from_product(
+        [pur_store_perc["itemisation_level_3"].unique(), categories],
+        names=("itemisation_level_3", "npm_score"),
+    )
+    pur_store_perc = (
+        pur_store_perc.set_index(["itemisation_level_3", "npm_score"])
+        .reindex(mux, fill_value=0)
+        .swaplevel(0, 1)
+        .reset_index()
+    )
+    # Create percent field
     pur_store_perc["Percent Kcal"] = (
         100
         * pur_store_perc["gross_kcal"]
         / pur_store_perc.groupby(category_col)["gross_kcal"].transform("sum")
-    ).round(0)
+    ).round(1)
 
     heat = (
         alt.Chart(pur_store_perc)
