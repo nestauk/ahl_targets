@@ -75,11 +75,11 @@ def agg_data(agg_var: pd.Series, df: pd.DataFrame):
     ).copy()
 
 
-def hist_agg(df: pd.DataFrame, agg: str, var: str):
+def hist_agg(df: pd.DataFrame, agg: str, var: str, min: float, max: float):
     fig = (
         alt.Chart(agg_meas(df, agg, var))
         .mark_bar()
-        .encode(alt.X("_" + var + ":Q", bin=True), y="count()")
+        .encode(alt.X("_" + var + ":Q", bin=True), alt.Y("count()", scale=alt.Scale(domain=[min, max])))
     )
 
     return save_altair(
@@ -201,10 +201,10 @@ if __name__ == "__main__":
         pur_store_info.copy(),
     )
 
-    hist_agg(pur_store_info, "itemisation_level_3", "in_scope")
-    hist_agg(pur_store_info, "itemisation_level_3", "npm_score")
-    hist_agg(pur_store_info, "itemisation_level_3", "Energy KCal")
-    hist_agg(pur_store_info, "itemisation_level_3", "kcal_100g")
+    hist_agg(pur_store_info, "itemisation_level_3", "in_scope", 0, 0.8)
+    hist_agg(pur_store_info, "itemisation_level_3", "npm_score", -5, 20)
+    hist_agg(pur_store_info, "itemisation_level_3", "Energy KCal",100, 90000)
+    hist_agg(pur_store_info, "itemisation_level_3", "kcal_100g", 0, 500)
 
     scatter_agg(pur_store_info, "itemisation_level_3", "_in_scope", "_npm_score")
     scatter_agg(pur_store_info, "itemisation_level_3", "_in_scope", "_Energy KCal")
