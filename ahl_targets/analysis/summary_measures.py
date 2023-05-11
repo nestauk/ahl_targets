@@ -54,7 +54,6 @@ def energy_df(
     return df_prod_ed
 
 
-# %%
 def make_weights(df: pd.DataFrame):
     df = df.dropna().copy()
     df["kcal_w"] = df["Gross Up Weight"] * df["Energy KCal"]
@@ -86,9 +85,6 @@ def agg_meas(
     ).reset_index(name="_" + val)
 
 
-# %%
-
-
 def agg(dfs: list, on: pd.Series):
     data_frames = dfs
     return ft.reduce(lambda left, right: pd.merge(left, right, on=[on]), dfs)
@@ -106,15 +102,21 @@ def agg_data(agg_var: pd.Series, df_weight: pd.DataFrame, weight: str):
     ).copy()
 
 
-<<<<<<< HEAD
-def hist_agg(df: pd.DataFrame, agg: str, var: str, min: float, max: float):
-=======
-def hist_agg(df_weight: pd.DataFrame, agg: str, var: str, weight: str):
->>>>>>> 9ab6ff3 (changes to axis)
+def hist_agg(
+    df_weight: pd.DataFrame, agg: str, var: str, weight: str, min: float, max: float
+):
     fig = (
         alt.Chart(agg_meas(df_weight, agg, var, weight))
         .mark_bar()
-        .encode(alt.X("_" + var + ":Q", bin=True), alt.Y("count()", scale=alt.Scale(domain=[min, max])))
+        .encode(
+            alt.X(
+                "_" + var + ":Q",
+                bin=True,
+                scale=alt.Scale(domain=[min, max]),
+                axis=alt.Axis(tickMinStep=1),
+            ),
+            alt.Y("count()"),
+        )
     )
 
     return save_altair(
@@ -129,6 +131,9 @@ def hist_agg(df_weight: pd.DataFrame, agg: str, var: str, weight: str):
         var + " by " + agg + "_hist_" + weight,
         driver=webdr,
     )
+
+
+# %%
 
 
 def scatter_agg(df_weight: pd.DataFrame, agg: str, var1: str, var2: str, weight: str):
@@ -251,29 +256,28 @@ pur_store_info = product.in_scope(
 )
 # %%
 
-hist_agg(pur_store_info, "itemisation_level_3", "in_scope", "kcal_w")
-hist_agg(pur_store_info, "itemisation_level_3", "npm_score", "kcal_w")
-hist_agg(pur_store_info, "itemisation_level_3", "Energy KCal", "kcal_w")
-hist_agg(pur_store_info, "itemisation_level_3", "kcal_100g", "kcal_w")
+df_weight = pur_store_info.pipe(make_weights).copy()
+
+# %%
 
 
-<<<<<<< HEAD
-    hist_agg(pur_store_info, "itemisation_level_3", "in_scope", 0, 0.8)
-    hist_agg(pur_store_info, "itemisation_level_3", "npm_score", -5, 20)
-    hist_agg(pur_store_info, "itemisation_level_3", "Energy KCal",100, 90000)
-    hist_agg(pur_store_info, "itemisation_level_3", "kcal_100g", 0, 500)
-=======
-hist_agg(pur_store_info, "itemisation_level_3", "in_scope", "kg_w")
-hist_agg(pur_store_info, "itemisation_level_3", "npm_score", "kg_w")
-hist_agg(pur_store_info, "itemisation_level_3", "Energy KCal", "kg_w")
-hist_agg(pur_store_info, "itemisation_level_3", "kcal_100g", "kg_w")
->>>>>>> 9ab6ff3 (changes to axis)
+hist_agg(df_weight, "itemisation_level_3", "in_scope", "kcal_w", 0, 0.8)
 
+# %%
 
-hist_agg(pur_store_info, "itemisation_level_3", "in_scope", "prod_w")
-hist_agg(pur_store_info, "itemisation_level_3", "npm_score", "prod_w")
-hist_agg(pur_store_info, "itemisation_level_3", "Energy KCal", "prod_w")
-hist_agg(pur_store_info, "itemisation_level_3", "kcal_100g", "prod_w")
+hist_agg(df_weight, "itemisation_level_3", "npm_score", "kcal_w", -5, 20)
+hist_agg(df_weight, "itemisation_level_3", "Energy KCal", "kcal_w", 100, 90000)
+hist_agg(df_weight, "itemisation_level_3", "kcal_100g", "kcal_w", 0, 500)
+
+hist_agg(df_weight, "itemisation_level_3", "in_scope", "kg_w", 0, 0.8)
+hist_agg(df_weight, "itemisation_level_3", "npm_score", "kg_w", -5, 20)
+hist_agg(df_weight, "itemisation_level_3", "Energy KCal", "kg_w", 100, 90000)
+hist_agg(df_weight, "itemisation_level_3", "kcal_100g", "kg_w", 0, 500)
+
+hist_agg(df_weight, "itemisation_level_3", "in_scope", "prod_w", 0, 0.8)
+hist_agg(df_weight, "itemisation_level_3", "npm_score", "prod_w", -5, 20)
+hist_agg(df_weight, "itemisation_level_3", "Energy KCal", "prod_w", 100, 90000)
+hist_agg(df_weight, "itemisation_level_3", "kcal_100g", "prod_w", 0, 500)
 
 # %%
 
@@ -405,4 +409,7 @@ prod_count = df_weight.groupby(["high_d", "in_scope"]).size().reset_index(name="
 prod_count["share"] = prod_count["count"] / prod_count["count"].sum()
 # %%
 prod_count
+# %%
+
+
 # %%
