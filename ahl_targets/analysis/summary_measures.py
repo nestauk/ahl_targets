@@ -1,3 +1,4 @@
+# %%
 from ahl_targets.pipeline import stores_transformation as stores
 from ahl_targets.pipeline import product_transformation as product
 from ahl_targets.pipeline import calorie_weighted_sales as calorie_sales
@@ -16,6 +17,9 @@ import numpy as np
 import altair as alt
 import logging
 import functools as ft
+from statsmodels.stats.weightstats import DescrStatsW
+
+# %%
 
 
 def energy_df(
@@ -50,12 +54,39 @@ def energy_df(
     return df_prod_ed
 
 
-def agg_meas(df: pd.DataFrame, agg: pd.Series, val: pd.Series):
-    df["_" + val] = df[val] * df["total_sale"]
+# %%
+def make_weights(df: pd.DataFrame):
+    df = df.dropna().copy()
+    df["kcal_w"] = df["Gross Up Weight"] * df["Energy KCal"]
+    df["kg_w"] = df["total_sale"]
+    df["prod_w"] = df["Gross Up Weight"]
+    return df
+
+
+def make_cross(df_weight: pd.DataFrame, val: str, weight: str):
+    df_weight[val + "_" + weight] = df_weight[val] * df_weight[weight]
+    return df_weight.copy()
+
+
+def desc_stat(df_weight: pd.DataFrame, val: str, weight=str):
+    df_weight = df_weight.pipe(make_cross, val, weight).copy()
     return (
-        df.groupby([agg])["_" + val].sum()
-        / pur_store_info.groupby([agg])["total_sale"].sum()
+        DescrStatsW(df_weight[val], weights=df_weight[weight]).mean,
+        DescrStatsW(df_weight[val], weights=df_weight[weight]).std,
+    )
+
+
+def agg_meas(
+    df_weight: pd.DataFrame, agg: pd.Series, val: pd.Series, weight: pd.Series
+):
+    df_weight = df_weight.pipe(make_cross, val, weight).copy()
+    return (
+        df_weight.groupby([agg])[val + "_" + weight].sum()
+        / df_weight.groupby([agg])[weight].sum()
     ).reset_index(name="_" + val)
+
+
+# %%
 
 
 def agg(dfs: list, on: pd.Series):
@@ -63,21 +94,25 @@ def agg(dfs: list, on: pd.Series):
     return ft.reduce(lambda left, right: pd.merge(left, right, on=[on]), dfs)
 
 
-def agg_data(agg_var: pd.Series, df: pd.DataFrame):
+def agg_data(agg_var: pd.Series, df_weight: pd.DataFrame, weight: str):
     return agg(
         [
-            agg_meas(df, agg_var, "in_scope"),
-            agg_meas(df, agg_var, "npm_score"),
-            agg_meas(df, agg_var, "kcal_100g"),
-            agg_meas(df, agg_var, "Energy KCal"),
+            agg_meas(df_weight, agg_var, "in_scope", weight),
+            agg_meas(df_weight, agg_var, "npm_score", weight),
+            agg_meas(df_weight, agg_var, "kcal_100g", weight),
+            agg_meas(df_weight, agg_var, "Energy KCal", weight),
         ],
         agg_var,
     ).copy()
 
 
+<<<<<<< HEAD
 def hist_agg(df: pd.DataFrame, agg: str, var: str, min: float, max: float):
+=======
+def hist_agg(df_weight: pd.DataFrame, agg: str, var: str, weight: str):
+>>>>>>> 9ab6ff3 (changes to axis)
     fig = (
-        alt.Chart(agg_meas(df, agg, var))
+        alt.Chart(agg_meas(df_weight, agg, var, weight))
         .mark_bar()
         .encode(alt.X("_" + var + ":Q", bin=True), alt.Y("count()", scale=alt.Scale(domain=[min, max])))
     )
@@ -85,130 +120,289 @@ def hist_agg(df: pd.DataFrame, agg: str, var: str, min: float, max: float):
     return save_altair(
         configure_plots(
             fig,
-            var + " by " + agg,
+            var + " by " + agg + "weight_" + weight,
             " ",
             16,
             14,
             14,
         ),
-        var + " by " + agg + "_hist",
+        var + " by " + agg + "_hist_" + weight,
         driver=webdr,
     )
 
 
-def scatter_agg(df: pd.DataFrame, agg: str, var1: str, var2: str):
-    fig = alt.Chart(agg_data(agg, df)).mark_circle(size=60).encode(x=var1, y=var2)
+def scatter_agg(df_weight: pd.DataFrame, agg: str, var1: str, var2: str, weight: str):
+    fig = (
+        alt.Chart(agg_data(agg, df_weight, weight))
+        .mark_circle(size=60)
+        .encode(x=var1, y=var2)
+    )
 
     return save_altair(
         configure_plots(
             fig,
-            var1 + " by " + var2,
+            var1 + " by " + var2 + "weight_" + weight,
             " ",
             16,
             14,
             14,
         ),
-        var1 + " by " + var2 + "_scatter",
+        var1 + " by " + var2 + "_scatter_" + weight,
         driver=webdr,
     )
 
 
-if __name__ == "__main__":
-    nut_recs = get_data.nutrition()
-    pur_recs = get_data.purchase_records_updated()
-    pur_rec_vol = get_data.purchase_records_volume()
-    store_coding = get_data.store_itemisation_coding()
-    store_lines = get_data.store_itemisation_lines()
-    prod_table = get_data.product_metadata()
-    prod_meas = get_data.product_measurement()
-    gravity = get_data.get_gravity()
-    fvn = get_data.get_fvn()
+# %%
 
-    webdr = google_chrome_driver_setup()
+# if __name__ == "__main__":
+nut_recs = get_data.nutrition()
+pur_recs = get_data.purchase_records_updated()
+pur_rec_vol = get_data.purchase_records_volume()
+store_coding = get_data.store_itemisation_coding()
+store_lines = get_data.store_itemisation_lines()
+prod_table = get_data.product_metadata()
+prod_meas = get_data.product_measurement()
+gravity = get_data.get_gravity()
+fvn = get_data.get_fvn()
 
-    df_prod_ed = energy_df(
-        pur_recs,
-        nut_recs,
-        prod_table,
-        prod_meas,
-        gravity,
-    )
+# %%
 
-    store_levels = stores.taxonomy(
-        store_coding,
-        store_lines,
-    )
+webdr = google_chrome_driver_setup()
+# %%
 
-    # Clean purchases and merge with nutrition data
-    pur_nut = tables.nutrition_merge(
-        nut_recs,
-        pur_recs[pur_recs["Reported Volume"].notna()].copy(),
-        ["Energy KCal"],
-    )
+df_prod_ed = energy_df(
+    pur_recs,
+    nut_recs,
+    prod_table,
+    prod_meas,
+    gravity,
+)
+# %%
 
-    logging.info("- Creating NPM dataframe")
-    npm = hfss.npm_score_unique(
-        prod_table,
-        pur_rec_vol,
-        gravity,
-        nut_recs,
-        fvn,
-        hfss.a_points_cols(),
-        "fiber_score",
-        "protein_score",
-        "Score",
-    )
-    logging.info("- Merging dataframes")
-    # Merge product, store and household info
+store_levels = stores.taxonomy(
+    store_coding,
+    store_lines,
+)
+# %%
 
-    pur_store_info = (
-        pur_nut[["Store Code", "Product Code", "Gross Up Weight", "Energy KCal"]]
-        .merge(
-            store_levels[["store_id", "itemisation_level_3", "itemisation_level_4"]],
-            how="left",
-            left_on="Store Code",
-            right_on="store_id",
-        )
-        .merge(
-            df_prod_ed[
-                [
-                    "Product Code",
-                    "rst_4_market",
-                    "rst_4_market_sector",
-                    "energy_density_cat",
-                    "kcal_100g",
-                    "ed_deciles",
-                    "manufacturer",
-                    "total_sale",
-                ]
-            ],
-            how="left",
-            left_on="Product Code",
-            right_on="Product Code",
-        )
-        .merge(
-            npm,
-            how="left",
-            left_on="Product Code",
-            right_on="product_code",
-        )
-        .drop(["store_id", "Store Code", "product_code"], axis=1)
-    )
-    pur_store_info = stores.online(
-        pur_store_info.copy(),
-    )
-    pur_store_info = product.in_scope(
-        pur_store_info.copy(),
-    )
+# Clean purchases and merge with nutrition data
+pur_nut = tables.nutrition_merge(
+    nut_recs,
+    pur_recs[pur_recs["Reported Volume"].notna()].copy(),
+    ["Energy KCal"],
+)
+# %%
 
+logging.info("- Creating NPM dataframe")
+npm = hfss.npm_score_unique(
+    prod_table,
+    pur_rec_vol,
+    gravity,
+    nut_recs,
+    fvn,
+    hfss.a_points_cols(),
+    "fiber_score",
+    "protein_score",
+    "Score",
+)
+# %%
+
+logging.info("- Merging dataframes")
+# Merge product, store and household info
+
+pur_store_info = (
+    pur_nut[["Store Code", "Product Code", "Gross Up Weight", "Energy KCal"]]
+    .merge(
+        store_levels[["store_id", "itemisation_level_3", "itemisation_level_4"]],
+        how="left",
+        left_on="Store Code",
+        right_on="store_id",
+    )
+    .merge(
+        df_prod_ed[
+            [
+                "Product Code",
+                "rst_4_market",
+                "rst_4_market_sector",
+                "energy_density_cat",
+                "kcal_100g",
+                "ed_deciles",
+                "manufacturer",
+                "total_sale",
+            ]
+        ],
+        how="left",
+        left_on="Product Code",
+        right_on="Product Code",
+    )
+    .merge(
+        npm,
+        how="left",
+        left_on="Product Code",
+        right_on="product_code",
+    )
+    .drop(["store_id", "Store Code", "product_code"], axis=1)
+)
+pur_store_info = stores.online(
+    pur_store_info.copy(),
+)
+pur_store_info = product.in_scope(
+    pur_store_info.copy(),
+)
+# %%
+
+hist_agg(pur_store_info, "itemisation_level_3", "in_scope", "kcal_w")
+hist_agg(pur_store_info, "itemisation_level_3", "npm_score", "kcal_w")
+hist_agg(pur_store_info, "itemisation_level_3", "Energy KCal", "kcal_w")
+hist_agg(pur_store_info, "itemisation_level_3", "kcal_100g", "kcal_w")
+
+
+<<<<<<< HEAD
     hist_agg(pur_store_info, "itemisation_level_3", "in_scope", 0, 0.8)
     hist_agg(pur_store_info, "itemisation_level_3", "npm_score", -5, 20)
     hist_agg(pur_store_info, "itemisation_level_3", "Energy KCal",100, 90000)
     hist_agg(pur_store_info, "itemisation_level_3", "kcal_100g", 0, 500)
+=======
+hist_agg(pur_store_info, "itemisation_level_3", "in_scope", "kg_w")
+hist_agg(pur_store_info, "itemisation_level_3", "npm_score", "kg_w")
+hist_agg(pur_store_info, "itemisation_level_3", "Energy KCal", "kg_w")
+hist_agg(pur_store_info, "itemisation_level_3", "kcal_100g", "kg_w")
+>>>>>>> 9ab6ff3 (changes to axis)
 
-    scatter_agg(pur_store_info, "itemisation_level_3", "_in_scope", "_npm_score")
-    scatter_agg(pur_store_info, "itemisation_level_3", "_in_scope", "_Energy KCal")
-    scatter_agg(pur_store_info, "itemisation_level_3", "_in_scope", "_kcal_100g")
-    scatter_agg(pur_store_info, "itemisation_level_3", "_npm_score", "_Energy KCal")
-    scatter_agg(pur_store_info, "itemisation_level_3", "_npm_score", "_kcal_100g")
-    scatter_agg(pur_store_info, "itemisation_level_3", "_kcal_100g", "_Energy KCal")
+
+hist_agg(pur_store_info, "itemisation_level_3", "in_scope", "prod_w")
+hist_agg(pur_store_info, "itemisation_level_3", "npm_score", "prod_w")
+hist_agg(pur_store_info, "itemisation_level_3", "Energy KCal", "prod_w")
+hist_agg(pur_store_info, "itemisation_level_3", "kcal_100g", "prod_w")
+
+# %%
+
+scatter_agg(pur_store_info, "itemisation_level_3", "_in_scope", "_npm_score")
+scatter_agg(pur_store_info, "itemisation_level_3", "_in_scope", "_Energy KCal")
+scatter_agg(pur_store_info, "itemisation_level_3", "_in_scope", "_kcal_100g")
+scatter_agg(pur_store_info, "itemisation_level_3", "_npm_score", "_Energy KCal")
+scatter_agg(pur_store_info, "itemisation_level_3", "_npm_score", "_kcal_100g")
+scatter_agg(pur_store_info, "itemisation_level_3", "_kcal_100g", "_Energy KCal")
+
+# %%
+df_weight = pur_store_info.pipe(make_weights).copy()
+
+# %%
+
+pd.DataFrame(
+    list(desc_stat(df_weight, "in_scope", "kcal_w")),
+    index=["mean", "std"],
+    columns=["in_scope"],
+)
+# %%
+
+pd.DataFrame(
+    list(desc_stat(df_weight, "npm_score", "kcal_w")),
+    index=["mean", "std"],
+    columns=["npm_score"],
+)
+# %%
+
+pd.DataFrame(
+    list(desc_stat(df_weight, "Energy KCal", "kcal_w")),
+    index=["mean", "std"],
+    columns=["Energy KCal"],
+)
+# %%
+
+pd.DataFrame(
+    list(desc_stat(df_weight, "kcal_100g", "kcal_w")),
+    index=["mean", "std"],
+    columns=["kcal_100g"],
+)
+
+# %%
+pd.DataFrame(
+    list(desc_stat(df_weight, "in_scope", "kg_w")),
+    index=["mean", "std"],
+    columns=["in_scope"],
+)
+# %%
+
+pd.DataFrame(
+    list(desc_stat(df_weight, "npm_score", "kg_w")),
+    index=["mean", "std"],
+    columns=["npm_score"],
+)
+# %%
+
+pd.DataFrame(
+    list(desc_stat(df_weight, "Energy KCal", "kg_w")),
+    index=["mean", "std"],
+    columns=["Energy KCal"],
+)
+# %%
+
+pd.DataFrame(
+    list(desc_stat(df_weight, "kcal_100g", "kg_w")),
+    index=["mean", "std"],
+    columns=["kcal_100g"],
+)
+# %%
+desc_stat(df_weight, "in_scope", "prod_w")
+desc_stat(df_weight, "npm_score", "prod_w")
+desc_stat(df_weight, "Energy KCal", "prod_w")
+desc_stat(df_weight, "kcal_100g", "prod_w")
+
+# %%
+
+pd.DataFrame(
+    list(desc_stat(df_weight, "in_scope", "prod_w")),
+    index=["mean", "std"],
+    columns=["in_scope"],
+)
+# %%
+
+pd.DataFrame(
+    list(desc_stat(df_weight, "npm_score", "prod_w")),
+    index=["mean", "std"],
+    columns=["npm_score"],
+)
+# %%
+
+pd.DataFrame(
+    list(desc_stat(df_weight, "Energy KCal", "prod_w")),
+    index=["mean", "std"],
+    columns=["Energy KCal"],
+)
+# %%
+
+pd.DataFrame(
+    list(desc_stat(df_weight, "kcal_100g", "prod_w")),
+    index=["mean", "std"],
+    columns=["kcal_100g"],
+)
+
+# %%
+df_weight["high_d"] = np.where(df_weight["ed_deciles"] > 8, 1, 0)
+# %%
+pd.crosstab(df_weight["high_d"], df_weight["in_scope"])
+# %%
+kilos = df_weight.groupby(["high_d", "in_scope"])["kg_w"].sum().reset_index()
+# %%
+kilos["share"] = kilos["kg_w"] / kilos["kg_w"].sum()
+# %%
+kilos
+# %%
+kcal = df_weight.groupby(["high_d", "in_scope"])["kcal_w"].sum().reset_index()
+kcal["share"] = kcal["kcal_w"] / kcal["kcal_w"].sum()
+
+
+# %%
+kcal
+# %%
+prod = df_weight.groupby(["high_d", "in_scope"])["prod_w"].sum().reset_index()
+prod["share"] = prod["prod_w"] / prod["prod_w"].sum()
+# %%
+prod
+# %%
+prod_count = df_weight.groupby(["high_d", "in_scope"]).size().reset_index(name="count")
+prod_count["share"] = prod_count["count"] / prod_count["count"].sum()
+# %%
+prod_count
+# %%
