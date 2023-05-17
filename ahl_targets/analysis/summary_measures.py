@@ -172,8 +172,7 @@ fvn = get_data.get_fvn()
 
 # %%
 
-webdr = google_chrome_driver_setup()
-# %%
+# webdr = google_chrome_driver_setup()
 
 df_prod_ed = energy_df(
     pur_recs,
@@ -182,13 +181,11 @@ df_prod_ed = energy_df(
     prod_meas,
     gravity,
 )
-# %%
 
 store_levels = stores.taxonomy(
     store_coding,
     store_lines,
 )
-# %%
 
 # Clean purchases and merge with nutrition data
 pur_nut = tables.nutrition_merge(
@@ -196,7 +193,6 @@ pur_nut = tables.nutrition_merge(
     pur_recs[pur_recs["Reported Volume"].notna()].copy(),
     ["Energy KCal"],
 )
-# %%
 
 logging.info("- Creating NPM dataframe")
 npm = hfss.npm_score_unique(
@@ -210,7 +206,6 @@ npm = hfss.npm_score_unique(
     "protein_score",
     "Score",
 )
-# %%
 
 logging.info("- Merging dataframes")
 # Merge product, store and household info
@@ -288,8 +283,6 @@ scatter_agg(pur_store_info, "itemisation_level_3", "_npm_score", "_Energy KCal")
 scatter_agg(pur_store_info, "itemisation_level_3", "_npm_score", "_kcal_100g")
 scatter_agg(pur_store_info, "itemisation_level_3", "_kcal_100g", "_Energy KCal")
 
-# %%
-df_weight = pur_store_info.pipe(make_weights).copy()
 
 # %%
 
@@ -412,4 +405,134 @@ prod_count
 # %%
 
 
+# %%
+disc_prod = df_weight[df_weight["type"] == "discretionary"].copy()
+
+# %%
+disc_prod_food = disc_prod.query("is_food == 1").copy()
+# %%
+
+check = disc_prod.merge(
+    prod_table[["product_code", "rst_4_market"]],
+    left_on="Product Code",
+    right_on="product_code",
+)
+# %%
+import matplotlib.pyplot as plt
+from matplotlib.ticker import PercentFormatter
+
+
+def weighted_avg_m2(distribution, weights):
+    weighted_sum = []
+    for salary, weight in zip(distribution, weights):
+        weighted_sum.append(salary * weight)
+
+    return round(sum(weighted_sum) / sum(weights), 2)
+
+
+# %%
+disc_prod_food.groupby(["rst_4_market_sector"])["kcal_w"].sum() / disc_prod_food[
+    "kcal_w"
+].sum() * 100
+
+# %%
+
+data = disc_prod["kcal_100g"]
+
+weights = disc_prod["kcal_w"] / disc_prod["kcal_w"].sum()
+
+plt.hist(data, weights=weights)
+plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+plt.title("Energy Density - Calories")
+plt.show()
+
+# %%
+weighted_avg_m2(data, weights)
+# %%
+
+weights = disc_prod["kg_w"] / disc_prod["kg_w"].sum()
+
+plt.hist(data, weights=weights)
+plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+plt.title("Energy Density - Kilos")
+plt.show()
+# %%
+weighted_avg_m2(data, weights)
+
+# %%
+
+data = disc_prod_food["kcal_100g"]
+
+weights = disc_prod_food["kg_w"] / disc_prod_food["kg_w"].sum()
+
+plt.hist(data, weights=weights)
+plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+plt.title("Energy Density - Kilos")
+plt.show()
+# %%
+weighted_avg_m2(data, weights)
+
+# %%
+
+weights = disc_prod["prod_w"] / disc_prod["prod_w"].sum()
+
+plt.hist(data, weights=weights)
+plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+plt.title("Energy Density - Products")
+plt.show()
+# %%
+weighted_avg_m2(data, weights)
+# %%
+data = disc_prod["npm_score"]
+
+weights = disc_prod["kcal_w"] / disc_prod["kcal_w"].sum()
+
+plt.hist(data, weights=weights)
+plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+plt.title("NPM - Calories")
+plt.show()
+# %%
+
+weights = disc_prod["kg_w"] / disc_prod["kg_w"].sum()
+
+plt.hist(data, weights=weights)
+plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+plt.title("NPM - Kilos")
+plt.show()
+# %%
+
+weights = disc_prod["prod_w"] / disc_prod["prod_w"].sum()
+
+plt.hist(data, weights=weights)
+plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+plt.title("NPM - Products")
+plt.show()
+# %%
+data = disc_prod[disc_prod["Energy KCal"] <= 9000].copy()
+data_plot = data["Energy KCal"]
+
+# %%
+
+weights = data["kcal_w"] / data["kcal_w"].sum()
+
+plt.hist(data_plot, weights=weights, bins=50)
+plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+plt.title("Total Kcal - Calories")
+plt.show()
+# %%
+
+weights = data["kg_w"] / data["kg_w"].sum()
+
+plt.hist(data_plot, weights=weights, bins=50)
+plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+plt.title("Total Kcal - Kilos")
+plt.show()
+# %%
+
+weights = data["prod_w"] / data["prod_w"].sum()
+
+plt.hist(data_plot, weights=weights, bins=50)
+plt.gca().yaxis.set_major_formatter(PercentFormatter(1))
+plt.title("Total Kcal - Products")
+plt.show()
 # %%
