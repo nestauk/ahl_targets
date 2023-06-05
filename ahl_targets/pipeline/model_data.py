@@ -4,7 +4,7 @@ from ahl_targets.pipeline import product_transformation as product
 import logging
 
 
-def model_data(
+def make_data(
     prod_table,
     pur_rec_vol,
     gravity,
@@ -155,6 +155,35 @@ def weighted_prod(store_data):
     return out
 
 
+def unique_ed(store_data):
+    """Unique ED by prodyuct
+
+    Args:
+        store_data (pd.DataFrame): marged data
+
+    Returns:
+        pd.DataFrame: aggregate df by product code with unique ED
+    """
+    return store_data.groupby(["product_code"])["ed"].mean().reset_index(name="ed")
+
+
+def unique_kcal(store_data):
+    """Unique KCAL by prodyuct
+
+    Args:
+        store_data (pd.DataFrame): marged data
+
+    Returns:
+        pd.DataFrame: aggregate df by product code with unique KCAL
+    """
+    return (
+        (store_data["Energy KCal"] / store_data["Quantity"])
+        .groupby(store_data["product_code"])
+        .mean()
+        .reset_index(name="kcal_unit")
+    )
+
+
 def weighted(store_data):
     """merged aggregated weight data
 
@@ -168,6 +197,8 @@ def weighted(store_data):
         weighted_kg(store_data)
         .merge(weighted_kcal(store_data), on="product_code")
         .merge(weighted_prod(store_data), on="product_code")
+        .merge(unique_ed(store_data), on="product_code")
+        .merge(unique_kcal(store_data), on="product_code")
     )
 
 
