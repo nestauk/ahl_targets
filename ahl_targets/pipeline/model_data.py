@@ -27,7 +27,7 @@ def make_data(
     Returns:
         pd.DataFrame: merged data
     """
-    logging.info("This function takes about 10 minutes to run")
+    logging.info("The function make_data takes about 10 minutes to run")
 
     keep_stores = [
         "Total Tesco",

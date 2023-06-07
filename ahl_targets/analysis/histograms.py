@@ -36,11 +36,11 @@ if __name__ == "__main__":
     )
     plt.xlabel("Energy (kcal/100g)")
     plt.title("Energy Density Distribution")
+    plt.show(block=False)
     plt.savefig(
         PROJECT_DIR / "outputs/figures/png/histogram_unweighted.png",
         bbox_inches="tight",
     )
-    plt.clf()
 
     # weighted by kcal
     weighted_data["ed"].plot(kind="hist", weights=weighted_data["kcal_w"])
@@ -60,11 +60,11 @@ if __name__ == "__main__":
         color="b",
         linestyle="--",
     )  # Replace `value` with the desired position of the line
+    plt.show(block=False)
     plt.savefig(
         PROJECT_DIR / "outputs/figures/png/histogram_kcal_weight.png",
         bbox_inches="tight",
     )
-    plt.clf()
 
     # weighted by kg
     weighted_data["ed"].plot(kind="hist", weights=weighted_data["kg_w"])
@@ -84,10 +84,10 @@ if __name__ == "__main__":
         color="b",
         linestyle="--",
     )  # Replace `value` with the desired position of the line
+    plt.show(block=False)
     plt.savefig(
         PROJECT_DIR / "outputs/figures/png/histogram_kg_weight.png", bbox_inches="tight"
     )
-    plt.clf()
 
     # weighted by prod
     weighted_data["ed"].plot(kind="hist", weights=weighted_data["prod_w"])
@@ -107,8 +107,8 @@ if __name__ == "__main__":
         color="b",
         linestyle="--",
     )  # Replace `value` with the desired position of the line
+    plt.show(block=False)
     plt.savefig(
         PROJECT_DIR / "outputs/figures/png/histogram_prod_weight.png",
         bbox_inches="tight",
     )
-    plt.clf()
