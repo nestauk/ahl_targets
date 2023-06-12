@@ -343,7 +343,11 @@ def purchase_records_volume() -> pd.DataFrame:
         df (pd.DataFrame): pruchase records with additional columns for volumes
     """
 
-    return pd.read_csv(PROJECT_DIR / "inputs/processed/pur_rec_volume.csv").iloc[:, 1:]
+    return (
+        pd.read_csv(PROJECT_DIR / "inputs/processed/pur_rec_volume.csv")
+        .iloc[:, 1:]
+        .query("Quantity > 0")
+    )
 
 
 def purchase_records_updated() -> pd.DataFrame:
