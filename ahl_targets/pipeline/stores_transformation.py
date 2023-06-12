@@ -16,6 +16,7 @@ def online(dat):
 
 def custom_taxonomy(store_levels):
     """Returns store categorisation as required by AHL
+
     Args:
         store_levels (pd.DataFrame): combined dataset of store codes and taxonomy
     """
