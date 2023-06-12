@@ -4,7 +4,7 @@ from ahl_targets.pipeline import product_transformation as product
 import logging
 
 
-def make_data(
+def purchase_complete(
     prod_table,
     pur_rec_vol,
     gravity,

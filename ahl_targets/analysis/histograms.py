@@ -1,7 +1,6 @@
 from ahl_targets.pipeline import model_data
 from ahl_targets.getters import get_data
 from functools import reduce
-import pandas as pd
 from ahl_targets import PROJECT_DIR
 import matplotlib.pyplot as plt
 
@@ -18,7 +17,7 @@ store_lines = get_data.store_itemisation_lines()
 
 
 if __name__ == "__main__":
-    store_data = model_data.make_data(
+    store_data = model_data.purchase_complete(
         prod_table, pur_rec_vol, gravity, nut_recs, fvn, store_coding, store_lines
     )
 
@@ -60,11 +59,11 @@ if __name__ == "__main__":
         color="b",
         linestyle="--",
     )  # Replace `value` with the desired position of the line
-    plt.show(block=False)
     plt.savefig(
         PROJECT_DIR / "outputs/figures/png/histogram_kcal_weight.png",
         bbox_inches="tight",
     )
+    plt.show(block=False)
 
     # weighted by kg
     weighted_data["ed"].plot(kind="hist", weights=weighted_data["kg_w"])
@@ -84,10 +83,10 @@ if __name__ == "__main__":
         color="b",
         linestyle="--",
     )  # Replace `value` with the desired position of the line
-    plt.show(block=False)
     plt.savefig(
         PROJECT_DIR / "outputs/figures/png/histogram_kg_weight.png", bbox_inches="tight"
     )
+    plt.show(block=False)
 
     # weighted by prod
     weighted_data["ed"].plot(kind="hist", weights=weighted_data["prod_w"])
@@ -107,8 +106,8 @@ if __name__ == "__main__":
         color="b",
         linestyle="--",
     )  # Replace `value` with the desired position of the line
-    plt.show(block=False)
     plt.savefig(
         PROJECT_DIR / "outputs/figures/png/histogram_prod_weight.png",
         bbox_inches="tight",
     )
+    plt.show(block=False)

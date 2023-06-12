@@ -3,9 +3,7 @@ from ahl_targets.getters import get_data
 from functools import reduce
 import pandas as pd
 from ahl_targets import PROJECT_DIR
-from ahl_targets.pipeline import hfss
-from ahl_targets.pipeline import stores_transformation as stores
-from ahl_targets.pipeline import product_transformation as product
+import logging
 
 prod_table = get_data.product_metadata()
 pur_rec_vol = get_data.purchase_records_volume()
@@ -78,4 +76,5 @@ if __name__ == "__main__":
     store_info = reduce(
         lambda left, right: pd.merge(left, right, on="store_cat", how="inner"), datasets
     )
+    logging.info("Saving store_info.csv in outputs/reports")
     store_info.to_csv(PROJECT_DIR / "outputs/reports/store_info.csv")
