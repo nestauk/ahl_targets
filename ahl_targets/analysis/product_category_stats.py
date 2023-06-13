@@ -18,9 +18,9 @@ store_coding = get_data.store_itemisation_coding()
 store_lines = get_data.store_itemisation_lines()
 
 
-def spend_share_subset(prod_purch_df: pd.DataFrame, category: str):
+def spend_share_subset(prod_purch_df: pd.DataFrame, category: str, threshold):
     """Subset purchase/product info by categories with a greater
-    than 1.5% spend share.
+    than threshold % spend share.
     """
     spend_share = (
         (prod_purch_df["Gross Up Weight"] * prod_purch_df["Spend"])
@@ -28,7 +28,7 @@ def spend_share_subset(prod_purch_df: pd.DataFrame, category: str):
         .sum()
         / (prod_purch_df["Gross Up Weight"] * prod_purch_df["Spend"]).sum()
     ).reset_index(name="spend_share")
-    spend_list = list(spend_share[spend_share.spend_share > 0.015][category])
+    spend_list = list(spend_share[spend_share.spend_share > threshold][category])
 
     return prod_purch_df[prod_purch_df[category].isin(spend_list)].copy()
 
@@ -107,9 +107,9 @@ if __name__ == "__main__":
     )
     # Subset dataset based on stores + manufacturers with >1.5% spend share
     store_sub_prods = stores.store_subset(prod_purch_df)
-    manuf_sub_prods = spend_share_subset(prod_purch_df, "manufacturer")
+    manuf_sub_prods = spend_share_subset(prod_purch_df, "manufacturer", 0.005)
     manuf_store_sub_prods = prod_purch_df.pipe(
-        spend_share_subset, category="manufacturer"
+        spend_share_subset, category="manufacturer", threshold=0.005
     ).pipe(stores.store_subset)
 
     logging.info("Saving files")
