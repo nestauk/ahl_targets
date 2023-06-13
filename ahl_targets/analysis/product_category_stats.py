@@ -18,6 +18,86 @@ store_coding = get_data.store_itemisation_coding()
 store_lines = get_data.store_itemisation_lines()
 
 
+def spend_share(
+    prod_purch_df: pd.DataFrame,
+    category: str,
+) -> pd.DataFrame:
+    return (
+        (prod_purch_df["Gross Up Weight"] * prod_purch_df["Spend"])
+        .groupby(prod_purch_df[category])
+        .sum()
+        / (prod_purch_df["Gross Up Weight"] * prod_purch_df["Spend"]).sum()
+    ).reset_index(name="spend_share")
+
+
+def volume_share(
+    cat_data: pd.DataFrame,
+    category: str,
+) -> pd.DataFrame:
+    return (
+        (cat_data["Gross Up Weight"] * cat_data["volume_up"])
+        .groupby(cat_data[category])
+        .sum()
+        / (cat_data["Gross Up Weight"] * cat_data["volume_up"]).sum()
+    ).reset_index(name="volume_share")
+
+
+def product_share(
+    cat_data: pd.DataFrame,
+    category: str,
+) -> pd.DataFrame:
+    return (
+        (cat_data["Gross Up Weight"]).groupby(cat_data[category]).sum()
+        / (cat_data["Gross Up Weight"]).sum()
+    ).reset_index(name="product_share")
+
+
+def kcal_share(
+    cat_data: pd.DataFrame,
+    category: str,
+) -> pd.DataFrame:
+    return (
+        (cat_data["Gross Up Weight"] * cat_data["Energy KCal"])
+        .groupby(cat_data[category])
+        .sum()
+        / (cat_data["Gross Up Weight"] * cat_data["Energy KCal"]).sum()
+    ).reset_index(name="kcal_share")
+
+
+def ed_average(
+    cat_data: pd.DataFrame,
+    category: str,
+) -> pd.DataFrame:
+    return (
+        (cat_data["Gross Up Weight"] * cat_data["ed"]).groupby(cat_data[category]).sum()
+        / (cat_data["Gross Up Weight"]).groupby(cat_data[category]).sum()
+    ).reset_index(name="ed_average")
+
+
+def npm_average(
+    cat_data: pd.DataFrame,
+    category: str,
+) -> pd.DataFrame:
+    return (
+        (cat_data["Gross Up Weight"] * cat_data["npm_score"])
+        .groupby(cat_data[category])
+        .sum()
+        / (cat_data["Gross Up Weight"]).groupby(cat_data[category]).sum()
+    ).reset_index(name="npm_average")
+
+
+def hfss_average(
+    cat_data: pd.DataFrame,
+    category: str,
+) -> pd.DataFrame:
+    return (
+        (cat_data["Gross Up Weight"] * cat_data["in_scope"])
+        .groupby(cat_data[category])
+        .sum()
+        / (cat_data["Gross Up Weight"]).groupby(cat_data[category]).sum()
+    ).reset_index(name="hfss_average")
+
+
 def spend_share_subset(
     prod_purch_df: pd.DataFrame,
     category: str,
@@ -36,16 +116,9 @@ def spend_share_subset(
                       a spend share greater than threshold.
     """
     # Calculate the spend share for each category
-    spend_share = (
-        (prod_purch_df["Gross Up Weight"] * prod_purch_df["Spend"])
-        .groupby(prod_purch_df[category])
-        .sum()
-        / (prod_purch_df["Gross Up Weight"] * prod_purch_df["Spend"]).sum()
-    ).reset_index(name="spend_share")
-
+    spend_share_df = spend_share(prod_purch_df, category)
     # Get a list of the categories with spend share greater than the threshold
-    spend_list = list(spend_share[spend_share.spend_share > threshold][category])
-
+    spend_list = list(spend_share_df[spend_share_df.spend_share > threshold][category])
     # Return a subset of the original DataFrame containing only the selected categories
     return prod_purch_df[prod_purch_df[category].isin(spend_list)].copy()
 
@@ -62,62 +135,24 @@ def product_category_report(
         file_name (str): Name to save file
         category (str): Name of category to groupby
     """
-    # market value share
-    spend_share = (
-        (cat_data["Gross Up Weight"] * cat_data["Spend"])
-        .groupby(cat_data[category])
-        .sum()
-        / (cat_data["Gross Up Weight"] * cat_data["Spend"]).sum()
-    ).reset_index(name="spend_share")
-    volume_share = (
-        (cat_data["Gross Up Weight"] * cat_data["volume_up"])
-        .groupby(cat_data[category])
-        .sum()
-        / (cat_data["Gross Up Weight"] * cat_data["volume_up"]).sum()
-    ).reset_index(name="volume_share")
-    product_share = (
-        (cat_data["Gross Up Weight"]).groupby(cat_data[category]).sum()
-        / (cat_data["Gross Up Weight"]).sum()
-    ).reset_index(name="product_share")
-    kcal_share = (
-        (cat_data["Gross Up Weight"] * cat_data["Energy KCal"])
-        .groupby(cat_data[category])
-        .sum()
-        / (cat_data["Gross Up Weight"] * cat_data["Energy KCal"]).sum()
-    ).reset_index(name="kcal_share")
-    ed_share = (
-        (cat_data["Gross Up Weight"] * cat_data["ed"]).groupby(cat_data[category]).sum()
-        / (cat_data["Gross Up Weight"]).groupby(cat_data[category]).sum()
-    ).reset_index(name="ed_average")
-    npm_share = (
-        (cat_data["Gross Up Weight"] * cat_data["npm_score"])
-        .groupby(cat_data[category])
-        .sum()
-        / (cat_data["Gross Up Weight"]).groupby(cat_data[category]).sum()
-    ).reset_index(name="npm_average")
-    hfss_share = (
-        (cat_data["Gross Up Weight"] * cat_data["in_scope"])
-        .groupby(cat_data[category])
-        .sum()
-        / (cat_data["Gross Up Weight"]).groupby(cat_data[category]).sum()
-    ).reset_index(name="hfss_average")
-
     datasets = [
-        spend_share,
-        volume_share,
-        product_share,
-        kcal_share,
-        ed_share,
-        npm_share,
-        hfss_share,
+        spend_share(cat_data, category),
+        volume_share(cat_data, category),
+        product_share(cat_data, category),
+        kcal_share(cat_data, category),
+        ed_average(cat_data, category),
+        npm_average(cat_data, category),
+        hfss_average(cat_data, category),
     ]
 
     prod_info = reduce(
         lambda left, right: pd.merge(left, right, on=category, how="inner"), datasets
     )
-    logging.info("Saving " + file_name + ".csv in outputs/reports")
-    file_path = "outputs/reports/" + file_name + ".csv"
+
+    file_path = f"outputs/reports/{file_name}.csv"
     prod_info.to_csv(PROJECT_DIR / file_path, index=False)
+
+    logging.info(f"Saved {file_name}.csv in outputs/reports")
     return prod_info
 
 
