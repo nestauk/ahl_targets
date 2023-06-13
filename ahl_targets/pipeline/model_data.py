@@ -29,28 +29,12 @@ def purchase_complete(
     """
     logging.info("The function make_data takes about 10 minutes to run")
 
-    keep_stores = [
-        "Total Tesco",
-        "Total Sainsbury's",
-        "Total Asda",
-        "Total Morrisons",
-        "Aldi",
-        "Lidl",
-        "Total Waitrose",
-        "The Co-Operative",
-        "Total Marks & Spencer",
-        "Total Iceland",
-        "Ocado Internet",
-    ]
-
     store_levels = stores.custom_taxonomy(
         stores.taxonomy(
             store_coding,
             store_lines,
         )
     )
-
-    stores_sub = store_levels[store_levels["store_cat"].isin(keep_stores)]
 
     logging.info("merge purchase record with product infro")
     dat1 = hfss.clean_tbl(prod_table, pur_rec_vol)
@@ -94,14 +78,27 @@ def purchase_complete(
         "Score",
     )
 
-    # Merge with npm and store names
-    store_data = dat3.merge(
-        stores_sub, left_on="Store Code", right_on="store_id"
-    ).merge(npm[["PurchaseId", "Period", "npm_score"]], on=["PurchaseId", "Period"])
+    # Merge with npm, store names, manufacturer
+    purchase_data = (
+        dat3.merge(
+            store_levels,
+            # how='left',
+            left_on="Store Code",
+            right_on="store_id",
+        )
+        .merge(
+            npm[["PurchaseId", "Period", "npm_score"]],
+            on=["PurchaseId", "Period"],
+        )
+        .merge(
+            prod_table[["product_code", "manufacturer"]],
+            how="left",
+            left_on="product_code",
+            right_on="product_code",
+        )
+    )
 
-    store_data = store_data.pipe(product.in_scope)
-
-    return store_data
+    return purchase_data.pipe(product.in_scope)
 
 
 def weighted_kg(store_data):
