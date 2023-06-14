@@ -82,7 +82,6 @@ def purchase_complete(
     purchase_data = (
         dat3.merge(
             store_levels,
-            # how='left',
             left_on="Store Code",
             right_on="store_id",
         )
