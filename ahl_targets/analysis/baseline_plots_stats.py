@@ -4,6 +4,8 @@ from ahl_targets.getters import get_data
 from ahl_targets.pipeline import model_data
 from ahl_targets.pipeline import hfss
 from ahl_targets.pipeline import product_transformation as product
+from ahl_targets.analysis import product_category_stats as cat_stats
+
 from ahl_targets.utils.altair_save_utils import (
     google_chrome_driver_setup,
     save_altair,
@@ -11,6 +13,85 @@ from ahl_targets.utils.altair_save_utils import (
 import altair as alt
 import pandas as pd
 import logging
+from functools import reduce
+
+
+def ed_average_weighted(
+    cat_data: pd.DataFrame,
+    category: str,
+    weight: str,
+) -> pd.DataFrame:
+    return (
+        (cat_data[weight] * cat_data["ed"]).groupby(cat_data[category]).sum()
+        / (cat_data[weight]).groupby(cat_data[category]).sum()
+    ).reset_index(name="ed_average" + weight)
+
+
+def npm_average_weighted(
+    cat_data: pd.DataFrame,
+    category: str,
+    weight: str,
+) -> pd.DataFrame:
+    return (
+        (cat_data[weight] * cat_data["npm_score"]).groupby(cat_data[category]).sum()
+        / (cat_data[weight]).groupby(cat_data[category]).sum()
+    ).reset_index(name="npm_average" + weight)
+
+
+def hfss_average_weighted(
+    cat_data: pd.DataFrame,
+    category: str,
+    weight: str,
+) -> pd.DataFrame:
+    return (
+        (cat_data[weight] * cat_data["in_scope"]).groupby(cat_data[category]).sum()
+        / (cat_data[weight]).groupby(cat_data[category]).sum()
+    ).reset_index(name="hfss_average" + weight)
+
+
+def baseline_category_report(
+    cat_data: pd.DataFrame,
+    file_name: str,
+    category: str,
+    weight_kcal: str,
+    weight_vol: str,
+) -> pd.DataFrame:
+    """Creates table of metrics based on products per category group and saves as csv file.
+
+    Args:
+        cat_data (pd.DataFrame): combined dataset of purchase and category info
+        file_name (str): Name to save file
+        category (str): Name of category to groupby
+    """
+    datasets = [
+        cat_data.groupby([category])["ed"]
+        .min()
+        .reset_index()
+        .rename(columns={"ed": "ed_min"}),
+        cat_data.groupby([category])["ed"]
+        .max()
+        .reset_index()
+        .rename(columns={"ed": "ed_max"}),
+        cat_stats.ed_average(cat_data, category),
+        cat_stats.npm_average(cat_data, category),
+        cat_stats.hfss_average(cat_data, category),
+        npm_average_weighted(cat_data, category, weight_kcal),
+        hfss_average_weighted(cat_data, category, weight_kcal),
+        ed_average_weighted(cat_data, category, weight_kcal),
+        npm_average_weighted(cat_data, category, weight_vol),
+        hfss_average_weighted(cat_data, category, weight_vol),
+        ed_average_weighted(cat_data, category, weight_vol),
+    ]
+
+    baseline_info = reduce(
+        lambda left, right: pd.merge(left, right, on=category, how="inner"), datasets
+    )
+
+    file_path = f"outputs/reports/{file_name}.csv"
+    baseline_info.to_csv(PROJECT_DIR / file_path, index=False)
+
+    logging.info(f"Saved {file_name}.csv in outputs/reports")
+    return baseline_info
 
 
 def plot_shares_bar(
@@ -118,6 +199,42 @@ if __name__ == "__main__":
         fvn,
         store_coding,
         store_lines,
+    )
+
+    # Per store / manufacturer:
+    base_stats = prod_purch_df[
+        [
+            "Quantity",
+            "product_code",
+            "ed",
+            "Gross Up Weight",
+            "Energy KCal",
+            "volume_up",
+            "manufacturer",
+            "store_cat",
+            "npm_score",
+            "in_scope",
+        ]
+    ].copy()
+
+    base_stats["weight_kcal"] = (
+        base_stats["Gross Up Weight"] * base_stats["Energy KCal"]
+    )
+    base_stats["weight_vol"] = base_stats["Gross Up Weight"] * base_stats["volume_up"]
+
+    store_baseline = baseline_category_report(
+        base_stats,
+        "store_baseline",
+        "store_cat",
+        "weight_kcal",
+        "weight_vol",
+    )
+    manuf_baseline = baseline_category_report(
+        base_stats,
+        "manuf_baseline",
+        "manufacturer",
+        "weight_kcal",
+        "weight_vol",
     )
 
     # 100-200 kcal/100g: an avocado (ED of 150 kcal/100g, NPM is X, not HFSS)
@@ -239,6 +356,7 @@ if __name__ == "__main__":
     # What % of high ED products are HFSS?
     # What is the average NPM for high ED products?
     high_ed_prods = prod_data[prod_data.ed >= 400].copy()
+    # Save as csv
     print(
         "Percent of high ED products as HFSS: "
         + str(high_ed_prods["in_scope"].value_counts(normalize=True)[1])
