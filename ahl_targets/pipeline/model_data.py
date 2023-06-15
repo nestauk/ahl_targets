@@ -36,7 +36,7 @@ def purchase_complete(
         )
     )
 
-    logging.info("merge purchase record with product infro")
+    logging.info("merge purchase record with product info")
     dat1 = hfss.clean_tbl(prod_table, pur_rec_vol)
 
     logging.info("filter to kg only")
