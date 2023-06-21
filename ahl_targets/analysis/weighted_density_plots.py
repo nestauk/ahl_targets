@@ -16,47 +16,6 @@ import logging
 from functools import reduce
 
 
-def plot_boxplots_ed(store_baseline_df: pd.DataFrame) -> alt.Chart:
-    """Plot boxplots of energy density average across stores.
-    Args:
-        store_baseline_df (pd.DataFrame): dataframe with energy density average per store
-    Returns:
-        boxplot (altair.Chart): boxplot of energy density average across stores
-    """
-
-    data = pd.melt(
-        store_baseline_df[["ed_averageweight_kcal", "ed_averageweight_vol"]].copy(),
-        var_name="Category",
-        value_name="Energy density average",
-    )
-    data["Category"] = data["Category"].map(
-        {
-            "ed_averageweight_kcal": "Kcal weighted",
-            "ed_averageweight_vol": "Volume weighted",
-        }
-    )
-    # Create boxplot using facets in Altair
-    boxplot = (
-        alt.Chart(data)
-        .mark_boxplot(size=70)
-        .encode(
-            x=alt.X("Energy density average:Q", title="Energy density average"),
-            y=alt.Y("Category:N", title="Category"),
-            color=alt.Color("Category:N"),
-        )
-        .properties(width=600, height=250)
-    )
-
-    return configure_plots(
-        boxplot,
-        "Boxplots of energy density average across stores",
-        "",
-        16,
-        14,
-        14,
-    )
-
-
 def plot_weighted_distribution(store_df: pd.DataFrame, store: str, file_name: str):
     """Plot weighted distribution of energy density across products.
     Args:

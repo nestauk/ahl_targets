@@ -146,7 +146,8 @@ def product_category_report(
     ]
 
     prod_info = reduce(
-        lambda left, right: pd.merge(left, right, on=category, how="inner"), datasets
+        lambda left, right: pd.merge(left, right, on=category, how="inner"),
+        datasets,
     )
 
     file_path = f"outputs/reports/{file_name}.csv"
@@ -179,6 +180,13 @@ if __name__ == "__main__":
     ).pipe(
         stores.store_subset,
     )
+    # Remove no brand name products
+    manuf_sub_prods = manuf_sub_prods[
+        manuf_sub_prods.manufacturer != "No Brand Name"
+    ].copy()
+    manuf_store_sub_prods = manuf_store_sub_prods[
+        manuf_store_sub_prods.manufacturer != "No Brand Name"
+    ].copy()
 
     logging.info("Saving files")
     # store subset products - store

@@ -5,7 +5,6 @@ from ahl_targets.pipeline import model_data
 from ahl_targets.pipeline import hfss
 from ahl_targets.pipeline import product_transformation as product
 from ahl_targets.analysis import product_category_stats as cat_stats
-
 from ahl_targets.utils.altair_save_utils import (
     google_chrome_driver_setup,
     save_altair,
@@ -72,19 +71,58 @@ def baseline_category_report(
         .max()
         .reset_index()
         .rename(columns={"ed": "ed_max"}),
-        cat_stats.ed_average(cat_data, category),
-        cat_stats.npm_average(cat_data, category),
-        cat_stats.hfss_average(cat_data, category),
-        npm_average_weighted(cat_data, category, weight_kcal),
-        hfss_average_weighted(cat_data, category, weight_kcal),
-        ed_average_weighted(cat_data, category, weight_kcal),
-        npm_average_weighted(cat_data, category, weight_vol),
-        hfss_average_weighted(cat_data, category, weight_vol),
-        ed_average_weighted(cat_data, category, weight_vol),
+        cat_stats.ed_average(
+            cat_data,
+            category,
+        ),
+        cat_stats.npm_average(
+            cat_data,
+            category,
+        ),
+        cat_stats.hfss_average(
+            cat_data,
+            category,
+        ),
+        npm_average_weighted(
+            cat_data,
+            category,
+            weight_kcal,
+        ),
+        hfss_average_weighted(
+            cat_data,
+            category,
+            weight_kcal,
+        ),
+        ed_average_weighted(
+            cat_data,
+            category,
+            weight_kcal,
+        ),
+        npm_average_weighted(
+            cat_data,
+            category,
+            weight_vol,
+        ),
+        hfss_average_weighted(
+            cat_data,
+            category,
+            weight_vol,
+        ),
+        ed_average_weighted(
+            cat_data,
+            category,
+            weight_vol,
+        ),
     ]
 
     baseline_info = reduce(
-        lambda left, right: pd.merge(left, right, on=category, how="inner"), datasets
+        lambda left, right: pd.merge(
+            left,
+            right,
+            on=category,
+            how="inner",
+        ),
+        datasets,
     )
 
     file_path = f"outputs/reports/{file_name}.csv"
@@ -107,7 +145,7 @@ def plot_shares_bar(
         alt.Chart(metric_df[metric_df.spend_share > 0.015].copy())
         .mark_bar()
         .encode(
-            x=alt.X(value_col, title=x_title),
+            x=alt.X(value_col, title=x_title, axis=alt.Axis(format="%")),
             y=alt.Y(category_col, sort="-x", title=y_title),
             color=alt.ColorValue("#0000FF"),
         )
@@ -424,5 +462,29 @@ if __name__ == "__main__":
             "manufacturer",
         ),
         "manuf_volume_bar",
+        driver=webdr,
+    )
+    save_altair(
+        plot_shares_bar(
+            store_df,
+            "store_cat",
+            "spend_share",
+            "Share of spend stores",
+            "Share of spend",
+            "Store",
+        ),
+        "store_spend_bar",
+        driver=webdr,
+    )
+    save_altair(
+        plot_shares_bar(
+            manuf_df,
+            "manufacturer",
+            "spend_share",
+            "Share of spend manufacturer",
+            "Share of spend",
+            "manufacturer",
+        ),
+        "manuf_spend_bar",
         driver=webdr,
     )
