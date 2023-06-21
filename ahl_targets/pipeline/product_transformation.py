@@ -10,21 +10,62 @@ def type(dat):
     return dat
 
 
+# def is_food(dat):
+#     """Returns indicator whether product is food or drink based on rst_4_market_sector"""
+#     dat["is_food"] = np.where(
+#         (dat["rst_4_market_sector"] == "Alcohol")
+#         | (dat["rst_4_market_sector"] == "Chilled Drinks")
+#         | (dat["rst_4_market_sector"] == "Take Home Soft Drinks"),
+#         0,
+#         1,
+#     )
+#     return dat
+
+import numpy as np
+
+
 def is_food(dat):
-    """Returns indicator whether product is food or drink based on rst_4_market_sector"""
-    dat["is_food"] = np.where(
-        (dat["rst_4_market_sector"] == "Alcohol")
-        | (dat["rst_4_market_sector"] == "Chilled Drinks")
-        | (dat["rst_4_market_sector"] == "Take Home Soft Drinks"),
-        0,
-        1,
-    )
-    return dat
+    """
+    Determines if a product is food or drink based on its market and market sector.
+
+    Args:
+        dat (pandas.DataFrame): Dataframe containing the market and market sector columns.
+
+    Returns:
+        pandas.DataFrame: A copy of the input dataframe with an additional column indicating if the product is food or drink.
+    """
+
+    # Extract market and market sector columns from the input dataframe
+    col1 = dat["rst_4_market"]
+    col2 = dat["rst_4_market_sector"]
+
+    # Define the market and market sector categories for food products
+    market = [
+        "Chilled Flavoured Milk",
+        "Food Drinks",
+        "Herbal Tea",
+        "Instant Coffee",
+        "Instant Milk",
+        "Liquid+Grnd Coffee+Beans",
+        "Tea",
+    ]
+
+    market_sector = [
+        "Alcohol",
+        "Chilled Drinks",
+        "Take Home Soft Drinks",
+    ]
+
+    # Determine if a product is food or drink based on its market and market sector
+    conditions = col1.isin(market) | col2.isin(market_sector)
+    dat["is_food"] = np.where(conditions, 0, 1)
+
+    # Return a copy of the input dataframe with an additional column indicating if the product is food or drink
+    return dat.copy()
 
 
-def in_scope(dat):
+def in_scope(dat_type):
     """Returns info on whether product is in scope or not"""
-    dat_type = dat.pipe(type).pipe(is_food)
     dat_type["in_scope"] = np.where(
         (dat_type["type"] == "discretionary")
         & (dat_type["is_food"] == 1)

@@ -264,6 +264,7 @@ def calculate_npm_score(df, a_points, fiber_col, protein_col, fvn_col):
 
 def scoring_df(prod_meta, pur_rec, gravity, nut_rec, fvn):
     """Returns df with columns needed for scoring"""
+    logging.info("running scoring_df")
     out = assign_scores(
         all_prod(
             drink_per_100g(

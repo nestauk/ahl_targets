@@ -5,13 +5,7 @@ import logging
 
 
 def make_data(
-    prod_table,
-    pur_rec_vol,
-    gravity,
-    nut_recs,
-    fvn,
-    store_coding,
-    store_lines,
+    prod_table, pur_rec_vol, gravity, nut_recs, fvn, store_coding, store_lines, npm
 ):
     """Merge datasets and restrict to selected retailers
 
@@ -55,6 +49,9 @@ def make_data(
     logging.info("merge purchase record with product infro")
     dat1 = hfss.clean_tbl(prod_table, pur_rec_vol)
 
+    logging.info("retain food only")
+    dat1 = product.is_food(dat1).query("is_food == 1")
+
     logging.info("filter to kg only")
     # filter to kg only
     dat2 = hfss.prod_kilos(dat1, nut_recs)
@@ -80,26 +77,12 @@ def make_data(
         on=["PurchaseId", "Period"],
     )
 
-    logging.info("Run NPM function")
-
-    npm = hfss.npm_score(
-        prod_table,
-        pur_rec_vol,
-        gravity,
-        nut_recs,
-        fvn,
-        hfss.a_points_cols(),
-        "fiber_score",
-        "protein_score",
-        "Score",
-    )
+    logging.info("merge with store data and npm")
 
     # Merge with npm and store names
     store_data = dat3.merge(
         stores_sub, left_on="Store Code", right_on="store_id"
     ).merge(npm[["PurchaseId", "Period", "npm_score"]], on=["PurchaseId", "Period"])
-
-    store_data = store_data.pipe(product.in_scope)
 
     return store_data
 
