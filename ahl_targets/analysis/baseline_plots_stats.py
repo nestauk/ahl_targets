@@ -24,7 +24,7 @@ def ed_average_weighted(
     return (
         (cat_data[weight] * cat_data["ed"]).groupby(cat_data[category]).sum()
         / (cat_data[weight]).groupby(cat_data[category]).sum()
-    ).reset_index(name="ed_average" + weight)
+    ).reset_index(name="ed_average " + weight)
 
 
 def npm_average_weighted(
@@ -35,7 +35,7 @@ def npm_average_weighted(
     return (
         (cat_data[weight] * cat_data["npm_score"]).groupby(cat_data[category]).sum()
         / (cat_data[weight]).groupby(cat_data[category]).sum()
-    ).reset_index(name="npm_average" + weight)
+    ).reset_index(name="npm_average " + weight)
 
 
 def hfss_average_weighted(
@@ -46,7 +46,7 @@ def hfss_average_weighted(
     return (
         (cat_data[weight] * cat_data["in_scope"]).groupby(cat_data[category]).sum()
         / (cat_data[weight]).groupby(cat_data[category]).sum()
-    ).reset_index(name="hfss_average" + weight)
+    ).reset_index(name="hfss_average " + weight)
 
 
 def baseline_category_report(
