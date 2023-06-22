@@ -358,6 +358,15 @@ if __name__ == "__main__":
         PROJECT_DIR / f"outputs/data/unique_categories_purchase_data.csv", index=False
     )
 
+    # Save a the liquid products
+    all_prods = prod_table[["rst_4_market", "rst_4_extended"]].drop_duplicates()
+    food_prods = prod_purch_df[["rst_4_market", "rst_4_extended"]].drop_duplicates()
+    pd.concat([food_prods, all_prods]).drop_duplicates(
+        subset=["rst_4_extended"], keep=False
+    ).to_csv(
+        PROJECT_DIR / f"outputs/data/liquid_categories_product_data.csv", index=False
+    )
+
     # Products grouped by NPM score to get avg: sugar, salt...ect per 100g
     prod_per_100 = (
         hfss.food_per_100g(prod_purch_df)
