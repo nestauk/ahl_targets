@@ -8,3 +8,8 @@ seaborn
 selenium<4.3.0
 matplotlib
 toolz
+pyarrow
+dask
+statsmodels
+plotnine
+random
