@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-# %%
 from ahl_targets.pipeline import model_data
 from ahl_targets.getters import get_data
 from functools import reduce
@@ -511,7 +508,7 @@ def avg_ed_comp_reduced(source):
         .encode(
             opacity=alt.value(1),
             shape=alt.Shape(
-                "Variable:N", scale=alt.Scale(range=["circle", "triangle"])
+                "Variable:N", scale=alt.Scale(range=["triangle", "circle"])
             ),
         )
         .transform_calculate(category="datum.Variable")
@@ -615,25 +612,25 @@ def create_outputs_scenarios(option, file_name):
         ]
     ]
 
-    print_row[
-        [
-            "mean_ed_kg_diff_percentage",
-            "mean_ed_kcal_diff_percentage",
-            "kcal_pp_diff_percentage",
-            "total_prod_diff_percentage",
-            "spend_diff_percentage",
-        ]
-    ] = print_row[
-        [
-            "mean_ed_kg_diff_percentage",
-            "mean_ed_kcal_diff_percentage",
-            "kcal_pp_diff_percentage",
-            "total_prod_diff_percentage",
-            "spend_diff_percentage",
-        ]
-    ].apply(
-        lambda x: x * 100
-    )
+    # print_row[
+    #    [
+    #        "mean_ed_kg_diff_percentage",
+    #        "mean_ed_kcal_diff_percentage",
+    #        "kcal_pp_diff_percentage",
+    #        "total_prod_diff_percentage",
+    #        "spend_diff_percentage",
+    #    ]
+    # ] = print_row[
+    #    [
+    #        "mean_ed_kg_diff_percentage",
+    #        "mean_ed_kcal_diff_percentage",
+    #        "kcal_pp_diff_percentage",
+    #        "total_prod_diff_percentage",
+    #        "spend_diff_percentage",
+    #    ]
+    # ].apply(
+    #    lambda x: x * 100
+    # )
     opt_df = (
         print_row[
             (print_row["ed_reduction"] == option[0])
@@ -816,8 +813,14 @@ for product_share_reform in product_share_reform_values:
                         low_ed = store_weight[~ed_cut].copy()
 
                         # generate list of products to reformulate
+                        # unique_products = pd.DataFrame(
+                        #    store_weight["product_code"].unique(),
+                        #    columns=["product_code"],
+                        # )
                         unique_products = pd.DataFrame(
-                            store_weight["product_code"].unique(),
+                            store_weight[(store_weight["ed"] >= cutoff)][
+                                "product_code"
+                            ].unique(),
                             columns=["product_code"],
                         )
                         unique_products["indicator_reform"] = np.random.choice(
@@ -1003,7 +1006,7 @@ new_columns = avg.filter(like="_new")
 baseline_columns.columns = baseline_columns.columns.str.replace("_baseline", "")
 new_columns.columns = new_columns.columns.str.replace("_new", "")
 
-result = (new_columns - baseline_columns) / baseline_columns
+result = (new_columns - baseline_columns) / baseline_columns * 100
 df = pd.concat([avg, result.add_suffix("_diff_percentage")], axis=1)
 df["kcal_diff"] = df["kcal_pp_new"] - df["kcal_pp_baseline"]
 
@@ -1039,13 +1042,10 @@ df.to_csv(PROJECT_DIR / "outputs/reports/simulation_ED.csv", index=False)
 # suitable scenarios
 suitable = df[
     (df["mean_ed_kg_diff_percentage"] < 0)
-    & (df["kcal_pp_new"] <= 1557)
-    & (df["spend_diff_percentage"] >= -5)
+    & (df["kcal_pp_new"] <= 1567)
+    & (df["spend_diff_percentage"] >= -1)
 ]
 
-
-# %%
-suitable
 
 # %%
 # Create new sub-folders
@@ -1060,18 +1060,21 @@ options = suitable[
 ].values.tolist()
 
 # %%
+options[3]
+
+# %%
 # Load web-driver
 webdr = google_chrome_driver_setup()
 
-create_outputs_scenarios(options[0], "125_10_25")  # Example
-create_outputs_scenarios(options[1], "5_125_25")
-create_outputs_scenarios(options[2], "7_125_25")
-create_outputs_scenarios(options[3], "10_125_25")
-create_outputs_scenarios(options[4], "125_125_25")
-create_outputs_scenarios(options[5], "5_15_25")
+# x3 examples
+create_outputs_scenarios(options[7], "125_125_5")
+create_outputs_scenarios(options[13], "10_15_5")
+create_outputs_scenarios(options[3], "5_125_25")
 
 # %%
 # Save file
 suitable.to_csv(
     PROJECT_DIR / "outputs/data/scenarios/ed/suitable_scenarios.csv", index=False
 )
+
+# %%

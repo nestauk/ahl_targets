@@ -339,7 +339,7 @@ def percent_npm_target(avg_retailer):
         alt.Chart(avg_retailer)
         .mark_bar()
         .encode(
-            x=alt.X("diff_percentage", title="Percentage Difference"),
+            x=alt.X("diff", title="NPM difference"),
             y=alt.Y("store_cat", title="Store"),
             color=alt.condition(
                 alt.datum.diff_percentage > 0,
@@ -352,7 +352,7 @@ def percent_npm_target(avg_retailer):
 
     return configure_plots(
         bar_plot,
-        "Percentage difference between store average NPM and the absolute target",
+        "Difference between store average NPM and the absolute target",
         "",
         16,
         14,
@@ -522,7 +522,7 @@ def avg_npm_comp_reduced(source):
         .encode(
             opacity=alt.value(1),
             shape=alt.Shape(
-                "Variable:N", scale=alt.Scale(range=["circle", "triangle"])
+                "Variable:N", scale=alt.Scale(range=["triangle", "circle"])
             ),
         )
         .transform_calculate(category="datum.Variable")
@@ -625,25 +625,25 @@ def create_outputs_scenarios(option, file_name):
         ]
     ]
 
-    print_row[
-        [
-            "mean_npm_kg_diff_percentage",
-            "mean_npm_kcal_diff_percentage",
-            "kcal_pp_diff_percentage",
-            "total_prod_diff_percentage",
-            "spend_diff_percentage",
-        ]
-    ] = print_row[
-        [
-            "mean_npm_kg_diff_percentage",
-            "mean_npm_kcal_diff_percentage",
-            "kcal_pp_diff_percentage",
-            "total_prod_diff_percentage",
-            "spend_diff_percentage",
-        ]
-    ].apply(
-        lambda x: x * 100
-    )
+    # print_row[
+    #    [
+    #        "mean_npm_kg_diff_percentage",
+    #        "mean_npm_kcal_diff_percentage",
+    #        "kcal_pp_diff_percentage",
+    #        "total_prod_diff_percentage",
+    #        "spend_diff_percentage",
+    #    ]
+    # ] = print_row[
+    #    [
+    #        "mean_npm_kg_diff_percentage",
+    #        "mean_npm_kcal_diff_percentage",
+    #        "kcal_pp_diff_percentage",
+    #        "total_prod_diff_percentage",
+    #        "spend_diff_percentage",
+    #    ]
+    # ].apply(
+    #    lambda x: x * 100
+    # )
 
     opt_df = (
         print_row[
@@ -708,9 +708,14 @@ def create_outputs_scenarios(option, file_name):
         density_plot["new_npm"] * density_plot["kg_w_new"]
     ).sum() / density_plot["kg_w_new"].sum()
     avg_retailer["diff"] = avg_retailer["npm_score"] - avg_retailer["target"]
-    avg_retailer["diff_percentage"] = 100 * (
-        avg_retailer["target"] / avg_retailer["npm_score"] - 1
-    )
+    # avg_retailer["diff_percentage"] = 100 * (
+    #    avg_retailer["target"] / avg_retailer["npm_score"] - 1
+    # )
+
+    avg_retailer["diff_percentage"] = (
+        (avg_retailer["target"] - avg_retailer["npm_score"])
+        / abs(avg_retailer["npm_score"])
+    ) * 100
 
     baseline_abs_targ = avg_retailer[["store_cat", "target", "npm_score"]].copy()
     baseline_abs_targ.columns = ["Store", "Absolute Target", "Baseline"]
@@ -853,10 +858,17 @@ for product_share_reform in product_share_reform_values:
                         low_npm = store_weight_npm[~npm_cut].copy()
 
                         # generate list of products to reformulate
+                        # unique_products = pd.DataFrame(
+                        #    store_weight_npm["product_code"].unique(),
+                        #    columns=["product_code"],
+                        # )
                         unique_products = pd.DataFrame(
-                            store_weight_npm["product_code"].unique(),
+                            store_weight_npm[(store_weight_npm["npm_score"] >= cutoff)][
+                                "product_code"
+                            ].unique(),
                             columns=["product_code"],
                         )
+
                         unique_products["indicator_reform"] = np.random.choice(
                             [0, 1],
                             size=len(unique_products),
@@ -1084,13 +1096,10 @@ df.head()
 # suitable scenarios
 suitable = df[
     (df["mean_npm_kg_diff_percentage"] < 0)
-    & (df["kcal_pp_new"] <= 1557)
-    & (df["spend_diff_percentage"] >= -5)
+    & (df["kcal_pp_new"] <= 1567)
+    & (df["spend_diff_percentage"] >= -1)
 ]
 
-
-# %%
-suitable
 
 # %%
 options = suitable[
@@ -1111,19 +1120,21 @@ Path(PROJECT_DIR / "outputs/figures/svg/scenarios/npm/").mkdir(
 )
 
 # %%
-options[0]
+options[4]
 
 # %%
 # Load web-driver
 webdr = google_chrome_driver_setup()
 
-create_outputs_scenarios(options[0], "5_5_25")
-# create_outputs_scenarios(options[1], "")
-# create_outputs_scenarios(options[2], "")
-# create_outputs_scenarios(options[3], "")
+# x3 examples for 1 pagers
+create_outputs_scenarios(options[4], "1_12_5")
+create_outputs_scenarios(options[2], "3_10_5")
+create_outputs_scenarios(options[10], "5_15_10")
 
 # %%
 # Save file
 suitable.to_csv(
-    PROJECT_DIR / "outputs/data/scenarios/npm/suitable_scenarios.csv", index=False
+    PROJECT_DIR / "outputs/data/scenarios/npm/suitable_scenarios_npm.csv", index=False
 )
+
+# %%
