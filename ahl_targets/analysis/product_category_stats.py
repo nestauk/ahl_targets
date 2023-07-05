@@ -1,4 +1,4 @@
-from unicodedata import category
+# from unicodedata import category
 from ahl_targets.pipeline import model_data
 from ahl_targets.pipeline import stores_transformation as stores
 from ahl_targets.getters import get_data
@@ -209,3 +209,6 @@ if __name__ == "__main__":
     )
     # manufacturer
     manuf_df = product_category_report(manuf_sub_prods, "manuf_info", "manufacturer")
+
+    # total in scope sales
+    total_in_scope_sales = prod_purch_df.groupby(["in_scope"]).sum()["Gross Up Weight"]
