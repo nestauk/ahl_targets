@@ -252,7 +252,7 @@ def calculate_npm_score(df, a_points, fiber_col, protein_col, fvn_col):
     fvn_col_values = df[fvn_col].values
 
     total = np.where(
-        (a_points_sum >= 11) & (fvn_col_values >= 5),
+        (a_points_sum >= 11) & (fvn_col_values >= 5) | (a_points_sum < 11),
         a_points_sum - df[fiber_col] - df[protein_col] - fvn_col_values,
         a_points_sum - df[fiber_col] - fvn_col_values,
     )
