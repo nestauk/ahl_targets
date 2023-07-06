@@ -1,4 +1,4 @@
-from ahl_targets.pipeline import model_data
+# from ahl_targets.pipeline import model_data
 from ahl_targets.getters import get_data
 from functools import reduce
 import pandas as pd
@@ -7,12 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 from pathlib import Path
-import statsmodels.formula.api as sm
-from ahl_targets.pipeline import stores_transformation as stores
-from ahl_targets.pipeline import hfss
-from ahl_targets.pipeline import product_transformation as product
-import pyarrow
-import statsmodels.api as sm
 from ahl_targets.utils.plotting import configure_plots
 from ahl_targets.utils.altair_save_utils import (
     google_chrome_driver_setup,
@@ -24,14 +18,14 @@ from plotnine import (
     ggplot,
     geom_line,
     aes,
-    stat_smooth,
+    # stat_smooth,
     facet_wrap,
-    geom_smooth,
+    # geom_smooth,
     labs,
     geom_hline,
-    geom_density,
+    # geom_density,
     geom_vline,
-    after_stat,
+    # after_stat,
     geom_vline,
 )
 
@@ -574,6 +568,281 @@ def avg_ed_comp_reduced(source):
     )
 
 
+# Workshop plots (stores removed)
+def avg_ed_comp_reduced_workshop(source):
+    # Reshape the data using melt()
+    melted_data = source.melt(
+        id_vars="store",
+        value_vars=["Baseline", "Relative Target"],
+        var_name="Variable",
+        value_name="Value",
+    )
+
+    # Create the plot
+    plot = (
+        alt.Chart(melted_data)
+        .mark_line()
+        .encode(
+            x=alt.X(
+                "Value",
+                scale=alt.Scale(
+                    domain=[
+                        (melted_data.Value.min() - 10).round(0),
+                        (melted_data.Value.max() + 10).round(0),
+                    ]
+                ),
+                axis=alt.Axis(
+                    title="Sales weighted average energy density across whole portfolio",
+                    grid=False,
+                ),
+            ),
+            y=alt.Y(
+                "store",
+                title="Store (>1.5% market share)",
+                axis=alt.Axis(labels=False),
+                sort=None,
+            ),
+            color=alt.Color("store", legend=None),
+        )
+        .properties(width=450, height=400)
+    )
+
+    # Add points to the plot
+    points = (
+        plot.mark_point()
+        .encode(
+            opacity=alt.value(1),
+            shape=alt.Shape(
+                "Variable:N", scale=alt.Scale(range=["triangle", "circle"])
+            ),
+        )
+        .transform_calculate(category="datum.Variable")
+    )
+
+    # Add annotations to the points
+    left_annotations = (
+        points.mark_text(
+            align="right",
+            dx=-10,  # Shift the 'reduced values' annotation to the left
+            fontSize=12,
+        )
+        .encode(
+            text=alt.Text("Value:Q", format=".1f"),
+            x=alt.X(
+                "Value:Q",
+                scale=alt.Scale(
+                    domain=[
+                        (melted_data.Value.min() - 10).round(0),
+                        (melted_data.Value.max() + 10).round(0),
+                    ]
+                ),
+            ),
+            y=alt.Y(
+                "store",
+                title="Store (>1.5% market share)",
+                axis=alt.Axis(labels=False),
+                sort=None,
+            ),
+        )
+        .transform_filter(
+            alt.FieldEqualPredicate(field="Variable", equal="Relative Target")
+        )
+    )
+
+    right_annotations = (
+        points.mark_text(
+            align="left",
+            dx=10,  # Shift the 'energy density' annotation to the right
+            fontSize=12,
+        )
+        .encode(
+            text=alt.Text("Value:Q", format=".1f"),
+            x=alt.X(
+                "Value:Q",
+                scale=alt.Scale(
+                    domain=[
+                        (melted_data.Value.min() - 10).round(0),
+                        (melted_data.Value.max() + 10).round(0),
+                    ]
+                ),
+            ),
+            y=alt.Y(
+                "store",
+                title="Store (>1.5% market share)",
+                axis=alt.Axis(labels=False),
+                sort=None,
+            ),
+        )
+        .transform_filter(alt.FieldEqualPredicate(field="Variable", equal="Baseline"))
+    )
+
+    # Combine the chart, points, and annotations
+    layered_plot = alt.layer(plot, points, left_annotations, right_annotations)
+
+    return configure_plots(
+        layered_plot,
+        "Relative target compared to the baseline across stores",
+        "",
+        18,
+        14,
+        15,
+    )
+
+
+def percent_ed_target_workshop(avg_retailer):
+    bar_plot = (
+        alt.Chart(avg_retailer)
+        .mark_bar()
+        .encode(
+            x=alt.X("diff_percentage", title="Percentage Difference"),
+            y=alt.Y(
+                "store_cat",
+                title="Store (>1.5% market share)",
+                axis=alt.Axis(labels=False),
+                sort=None,
+            ),
+            color=alt.condition(
+                alt.datum.diff_percentage > 0,
+                alt.value("#0000FF"),  # The positive color
+                alt.value("#FDB633"),  # The negative color
+            ),
+        )
+        .properties(height=300, width=600)
+    )
+
+    return configure_plots(
+        bar_plot,
+        "Percentage difference between store average energy density and the absolute target",
+        "",
+        16,
+        14,
+        14,
+    )
+
+
+def plot_avg_ed_target_workshop(baseline_abs_targ):
+    # Reshape the data using melt()
+    melted_data = baseline_abs_targ.melt(
+        id_vars="Store",
+        value_vars=["Baseline", "Absolute Target"],
+        var_name="Variable",
+        value_name="Value",
+    )
+    # Create the plot
+    base = alt.Chart(baseline_abs_targ).encode(
+        y=alt.Y(
+            "Store:N",
+            title="Store (>1.5% market share)",
+            axis=alt.Axis(labels=False),
+            sort=None,
+        ),
+    )
+    # Points and lines
+    points = base.mark_circle(size=1).encode(
+        x=alt.X(
+            "Baseline:Q",
+            scale=alt.Scale(
+                domain=[160, (baseline_abs_targ["Baseline"].max() + 5).round(0)]
+            ),
+            axis=alt.Axis(
+                title="Sales weighted average energy density across whole portfolio",
+                grid=False,
+            ),
+        ),
+        color=alt.Color("Store"),  # , sort="Baseline:Q"),
+    )
+
+    # Add points to the plot
+    line = (
+        alt.Chart(baseline_abs_targ)
+        .mark_rule(color="black", size=2, strokeDash=[2, 2])
+        .encode(
+            x=alt.X(
+                "Absolute Target",
+                scale=alt.Scale(
+                    domain=[160, (baseline_abs_targ["Baseline"].max() + 5).round(0)]
+                ),
+            ),
+        )
+    )
+
+    lines = (
+        alt.Chart(melted_data)
+        .mark_line(color="blue")
+        .encode(
+            x=alt.X("Value:Q"),
+            y=alt.Y("Store", sort=None),
+            color=alt.Color("Store", legend=None),
+        )
+    )
+
+    # Add points to the plot
+    shapes = (
+        lines.mark_point()
+        .encode(
+            opacity=alt.value(1),
+            shape=alt.Shape(
+                "Variable:N", scale=alt.Scale(range=["circle", "triangle"])
+            ),
+        )
+        .transform_calculate(category="datum.Variable")
+    )
+
+    # Annotation
+    text = (
+        alt.Chart(
+            pd.DataFrame({"value": [baseline_abs_targ["Absolute Target"].loc[0]]})
+        )
+        .mark_text(
+            align="right", baseline="top", dx=-10, dy=-10, fontSize=16, color="black"
+        )
+        .encode(
+            x="value:Q",
+            text=alt.value(
+                "Target = " + str(baseline_abs_targ["Absolute Target"].loc[0].round(1))
+            ),
+        )
+    )
+
+    # Annotation for 'ed' values
+    ed_text_left = (
+        alt.Chart(baseline_abs_targ)
+        .transform_filter(
+            alt.datum["Baseline"] < baseline_abs_targ["Absolute Target"].loc[0]
+        )
+        .mark_text(baseline="middle", fontSize=12, color="black", dx=-20)
+        .encode(
+            x=alt.X("Baseline:Q", title=""),
+            y=alt.Y("Store:N", title="", sort=None),
+            text=alt.Text("Baseline:Q", format=".1f"),
+        )
+    )
+    ed_text_right = (
+        alt.Chart(baseline_abs_targ)
+        .transform_filter(
+            alt.datum["Baseline"] > baseline_abs_targ["Absolute Target"].loc[0]
+        )
+        .mark_text(baseline="middle", fontSize=12, color="black", dx=20)
+        .encode(
+            x=alt.X("Baseline:Q", title=""),
+            y=alt.Y("Store:N", title="", sort=None),
+            text=alt.Text("Baseline:Q", format=".1f"),
+        )
+    )
+
+    chart = (
+        points + lines + shapes + line + text + ed_text_left + ed_text_right
+    ).properties(width=500, height=400)
+    return configure_plots(
+        chart,
+        "Store baseline compared to the absolute target",
+        "",
+        18,
+        14,
+        15,
+    )
+
+
 def create_outputs_scenarios(option, file_name):
     # Create paths
     path_png = "outputs/figures/png/scenarios/ed/" + file_name + "/"
@@ -611,26 +880,6 @@ def create_outputs_scenarios(option, file_name):
             "kcal_diff",
         ]
     ]
-
-    # print_row[
-    #    [
-    #        "mean_ed_kg_diff_percentage",
-    #        "mean_ed_kcal_diff_percentage",
-    #        "kcal_pp_diff_percentage",
-    #        "total_prod_diff_percentage",
-    #        "spend_diff_percentage",
-    #    ]
-    # ] = print_row[
-    #    [
-    #        "mean_ed_kg_diff_percentage",
-    #        "mean_ed_kcal_diff_percentage",
-    #        "kcal_pp_diff_percentage",
-    #        "total_prod_diff_percentage",
-    #        "spend_diff_percentage",
-    #    ]
-    # ].apply(
-    #    lambda x: x * 100
-    # )
     opt_df = (
         print_row[
             (print_row["ed_reduction"] == option[0])
@@ -702,6 +951,8 @@ def create_outputs_scenarios(option, file_name):
     perc_plot = percent_ed_target(avg_retailer)
     avg_ed_targ = plot_avg_ed_target(baseline_abs_targ)
 
+    avg_ed_targ_work = plot_avg_ed_target_workshop(baseline_abs_targ)
+
     save_altair(
         perc_plot,
         "scenarios/ed/" + file_name + "/perc_plot_" + file_name,
@@ -710,6 +961,11 @@ def create_outputs_scenarios(option, file_name):
     save_altair(
         avg_ed_targ,
         "scenarios/ed/" + file_name + "/avg_ed_targ_" + file_name,
+        driver=webdr,
+    )
+    save_altair(
+        avg_ed_targ_work,
+        "scenarios/ed/" + file_name + "/avg_ed_targ_workshop" + file_name,
         driver=webdr,
     )
 
@@ -1037,7 +1293,6 @@ df.to_csv(PROJECT_DIR / "outputs/reports/simulation_ED.csv", index=False)
     )
 )
 
-
 # %%
 # suitable scenarios
 suitable = df[
@@ -1077,4 +1332,70 @@ suitable.to_csv(
     PROJECT_DIR / "outputs/data/scenarios/ed/suitable_scenarios.csv", index=False
 )
 
-# %%
+# Workshop plots (stores removed)
+
+# Absolute target plots
+avg_retailer = pd.read_csv(
+    PROJECT_DIR / "outputs/data/scenarios/ed/avg_retailer10_15_5.csv"
+)
+
+# Sort the data based on category order
+category_order = list(avg_retailer.sort_values(by="diff", ascending=False)["store_cat"])
+avg_retailer["store_cat"] = pd.Categorical(avg_retailer["store_cat"], category_order)
+avg_retailer = avg_retailer.sort_values("store_cat")
+perc_plot_work = percent_ed_target_workshop(avg_retailer)
+
+baseline_abs_targ = avg_retailer[["store_cat", "target", "ed"]].copy()
+baseline_abs_targ.columns = ["Store", "Absolute Target", "Baseline"]
+# Sort the data based on category order
+category_order = list(
+    baseline_abs_targ.sort_values(by="Baseline", ascending=False)["Store"]
+)
+baseline_abs_targ["Store"] = pd.Categorical(baseline_abs_targ["Store"], category_order)
+baseline_abs_targ = baseline_abs_targ.sort_values("Store")
+avg_ed_targ_work = plot_avg_ed_target_workshop(baseline_abs_targ)
+
+# Relative target plot
+df_reduced = pd.read_csv(
+    PROJECT_DIR / "outputs/data/scenarios/ed/avg_ed_reduced10_15_5.csv"
+)
+df_reduced.columns = ["store", "Baseline", "absolute target", "Relative Target"]
+# Sort the data based on category order
+category_order = list(
+    df_reduced.sort_values(by="Relative Target", ascending=False)["store"]
+)
+df_reduced["store"] = pd.Categorical(df_reduced["store"], category_order)
+df_reduced = df_reduced.sort_values("store")
+average_ed_reduced_work = avg_ed_comp_reduced_workshop(
+    df_reduced[["store", "Baseline", "Relative Target"]]
+)
+
+# Save plots
+# Create new sub-folders
+Path(PROJECT_DIR / "outputs/figures/png/scenarios/ed/workshop/").mkdir(
+    parents=True, exist_ok=True
+)
+Path(PROJECT_DIR / "outputs/figures/html/scenarios/ed/workshop/").mkdir(
+    parents=True, exist_ok=True
+)
+Path(PROJECT_DIR / "outputs/figures/svg/scenarios/ed/workshop/").mkdir(
+    parents=True, exist_ok=True
+)
+
+# Load web-driver
+webdr = google_chrome_driver_setup()
+save_altair(
+    perc_plot_work,
+    "scenarios/ed/workshop/perc_plot_10_15_5",
+    driver=webdr,
+)
+save_altair(
+    avg_ed_targ_work,
+    "scenarios/ed/workshop/avg_ed_target_10_15_5",
+    driver=webdr,
+)
+save_altair(
+    average_ed_reduced_work,
+    "scenarios/ed/workshop/avg_ed_reduced_10_15_5",
+    driver=webdr,
+)
