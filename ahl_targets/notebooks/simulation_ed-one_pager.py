@@ -592,7 +592,7 @@ def avg_ed_comp_reduced_workshop(source):
                     ]
                 ),
                 axis=alt.Axis(
-                    title="Sales weighted average energy density across whole portfolio",
+                    title="Sales weighted average calorie density (kcal/100g) across whole portfolio",
                     grid=False,
                 ),
             ),
@@ -745,7 +745,7 @@ def plot_avg_ed_target_workshop(baseline_abs_targ):
                 domain=[160, (baseline_abs_targ["Baseline"].max() + 5).round(0)]
             ),
             axis=alt.Axis(
-                title="Sales weighted average energy density across whole portfolio",
+                title="Sales weighted average calorie density (kcal/100g) across whole portfolio",
                 grid=False,
             ),
         ),
