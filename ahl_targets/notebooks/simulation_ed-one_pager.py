@@ -1,11 +1,11 @@
-# from ahl_targets.pipeline import model_data
+# %%
+
 from ahl_targets.getters import get_data
 from functools import reduce
 import pandas as pd
 from ahl_targets import PROJECT_DIR
 import matplotlib.pyplot as plt
 import numpy as np
-import random
 from pathlib import Path
 from ahl_targets.utils.plotting import configure_plots
 from ahl_targets.utils.altair_save_utils import (
@@ -31,8 +31,11 @@ from plotnine import (
 
 
 # %%
-random.seed(42)
+np.random.seed(42)
 
+# %%
+
+pd.set_option("display.max_columns", None)
 
 # %%
 # read data
@@ -41,6 +44,19 @@ prod_table = get_data.product_metadata()
 
 
 # %%
+def round_to_nearest_5(number):
+    """
+    Round a given number to the nearest multiple of 5.
+
+    Args:
+        number (int or float): The number to be rounded.
+
+    Returns:
+        int or float: The rounded number.
+    """
+    return round(number / 5) * 5
+
+
 def weighted_kg_by_store(store_data):
     """aggregated df with volume weights
 
@@ -720,20 +736,22 @@ def percent_ed_target_workshop(avg_retailer):
     )
 
 
+# %%
+
+
 def plot_avg_ed_target_workshop(baseline_abs_targ):
     # Reshape the data using melt()
     melted_data = baseline_abs_targ.melt(
-        id_vars="Store",
-        value_vars=["Baseline", "Absolute Target"],
+        id_vars="store_letter",
+        value_vars=["Baseline", "Target"],
         var_name="Variable",
         value_name="Value",
     )
     # Create the plot
     base = alt.Chart(baseline_abs_targ).encode(
         y=alt.Y(
-            "Store:N",
-            title="Store (>1.5% market share)",
-            axis=alt.Axis(labels=False),
+            "store_letter:N",
+            title="",
             sort=None,
         ),
     )
@@ -749,7 +767,7 @@ def plot_avg_ed_target_workshop(baseline_abs_targ):
                 grid=False,
             ),
         ),
-        color=alt.Color("Store"),  # , sort="Baseline:Q"),
+        color=alt.Color("store_letter"),  # , sort="Baseline:Q"),
     )
 
     # Add points to the plot
@@ -758,7 +776,7 @@ def plot_avg_ed_target_workshop(baseline_abs_targ):
         .mark_rule(color="black", size=2, strokeDash=[2, 2])
         .encode(
             x=alt.X(
-                "Absolute Target",
+                "Target",
                 scale=alt.Scale(
                     domain=[160, (baseline_abs_targ["Baseline"].max() + 5).round(0)]
                 ),
@@ -771,8 +789,8 @@ def plot_avg_ed_target_workshop(baseline_abs_targ):
         .mark_line(color="blue")
         .encode(
             x=alt.X("Value:Q"),
-            y=alt.Y("Store", sort=None),
-            color=alt.Color("Store", legend=None),
+            y=alt.Y("store_letter", sort=None),
+            color=alt.Color("store_letter", legend=None),
         )
     )
 
@@ -782,7 +800,16 @@ def plot_avg_ed_target_workshop(baseline_abs_targ):
         .encode(
             opacity=alt.value(1),
             shape=alt.Shape(
-                "Variable:N", scale=alt.Scale(range=["circle", "triangle"])
+                "Variable:N",
+                scale=alt.Scale(range=["circle", "triangle"]),
+                title=None,
+                legend=alt.Legend(
+                    orient="none",
+                    legendX=400,
+                    legendY=200,
+                    direction="vertical",
+                    titleAnchor="middle",
+                ),
             ),
         )
         .transform_calculate(category="datum.Variable")
@@ -790,16 +817,14 @@ def plot_avg_ed_target_workshop(baseline_abs_targ):
 
     # Annotation
     text = (
-        alt.Chart(
-            pd.DataFrame({"value": [baseline_abs_targ["Absolute Target"].loc[0]]})
-        )
+        alt.Chart(pd.DataFrame({"value": [int(baseline_abs_targ["Target"].loc[0])]}))
         .mark_text(
             align="right", baseline="top", dx=-10, dy=-10, fontSize=16, color="black"
         )
         .encode(
             x="value:Q",
             text=alt.value(
-                "Target = " + str(baseline_abs_targ["Absolute Target"].loc[0].round(1))
+                "Target " + "\u2264 " + str(int(baseline_abs_targ["Target"].loc[0]))
             ),
         )
     )
@@ -807,40 +832,163 @@ def plot_avg_ed_target_workshop(baseline_abs_targ):
     # Annotation for 'ed' values
     ed_text_left = (
         alt.Chart(baseline_abs_targ)
-        .transform_filter(
-            alt.datum["Baseline"] < baseline_abs_targ["Absolute Target"].loc[0]
-        )
+        .transform_filter(alt.datum["Baseline"] < baseline_abs_targ["Target"].loc[0])
         .mark_text(baseline="middle", fontSize=12, color="black", dx=-20)
         .encode(
             x=alt.X("Baseline:Q", title=""),
-            y=alt.Y("Store:N", title="", sort=None),
+            y=alt.Y("store_letter:N", title="", sort=None),
             text=alt.Text("Baseline:Q", format=".1f"),
         )
     )
     ed_text_right = (
         alt.Chart(baseline_abs_targ)
-        .transform_filter(
-            alt.datum["Baseline"] > baseline_abs_targ["Absolute Target"].loc[0]
-        )
+        .transform_filter(alt.datum["Baseline"] >= baseline_abs_targ["Target"].loc[0])
         .mark_text(baseline="middle", fontSize=12, color="black", dx=20)
         .encode(
             x=alt.X("Baseline:Q", title=""),
-            y=alt.Y("Store:N", title="", sort=None),
-            text=alt.Text("Baseline:Q", format=".1f"),
+            y=alt.Y("store_letter:N", title="", sort=None),
+            text=alt.Text("Baseline:Q", format=".0f"),
         )
     )
 
     chart = (
         points + lines + shapes + line + text + ed_text_left + ed_text_right
-    ).properties(width=500, height=400)
+    ).properties(width=500, height=500)
     return configure_plots(
         chart,
-        "Store baseline compared to the absolute target",
+        "",
         "",
         18,
         14,
         15,
     )
+
+
+# %%
+
+
+def plot_density(plt_df_sub, full_results):
+    chart = (
+        alt.Chart(plt_df_sub)
+        .transform_density(
+            "share", as_=["size", "density"], groupby=["when"], bandwidth=50
+        )
+        .mark_line()
+        .encode(
+            x=alt.X(
+                "size:Q",
+                axis=alt.Axis(
+                    title="Sales Weighted Average Energy Density (kcal/100g)"
+                ),
+            ),
+            y=alt.Y("density:Q", axis=alt.Axis(title="Weighted Sales (%)", format="%")),
+            color=alt.Color("when:N", legend=alt.Legend(title="")),
+        )
+    )
+
+    share_before = ((full_results["ed"] * full_results["kg_w"])).sum() / full_results[
+        "kg_w"
+    ].sum()
+    share_after = (
+        (full_results["new_ed"] * full_results["kg_w_new"])
+    ).sum() / full_results["kg_w_new"].sum()
+
+    vertical_lines = [share_before, share_after]
+    mean_values = [0.01, 0.02]
+    label_position = [share_before + 200, share_after]
+
+    # Create a DataFrame for the vertical lines, mean values, and line styles
+    labels_df = pd.DataFrame({"x": vertical_lines, "mean_value": mean_values})
+
+    labels_pos = pd.DataFrame({"x": label_position, "mean_value": mean_values})
+
+    labels_pos["label"] = [
+        "Mean before:" + str(round(share_before, 0)),
+        "Mean after:" + str(round(share_after, 0)),
+    ]  # Example labels, replace with desired labels
+    labels_df["line_style"] = [
+        "solid",
+        "dashed",
+    ]  # Example line styles, replace with desired styles
+    labels_pos["offset"] = [0.002, 0.0015]
+
+    layered_chart = alt.layer(
+        chart,
+        alt.Chart(labels_df)
+        .mark_rule()
+        .encode(
+            x="x:Q",
+            color=alt.ColorValue("black"),
+            strokeDash=alt.StrokeDash("line_style:N", legend=None),
+        ),
+        alt.Chart(labels_pos)
+        .mark_text(align="right", baseline="bottom", fontSize=12)
+        .encode(
+            x="x:Q", y=alt.Y("offset:Q"), text="label", color=alt.ColorValue("black")
+        ),
+    ).properties(height=300, width=600)
+
+    return configure_plots(
+        layered_chart,
+        "Distribution of Sales Weighted Average Energy Density",
+        "",
+        16,
+        14,
+        14,
+    )
+
+
+# %%
+
+
+def annex_chart_kcal(df):
+    chart = (
+        alt.Chart(df)
+        .mark_line()
+        .encode(
+            y=alt.X("kcal_pp_new:Q", scale=alt.Scale(domain=[1400, 1700])),
+            x="ed_reduction",
+            color="sales_change_low",
+        )
+    )
+    rule = alt.Chart(df).mark_rule(color="red").encode(y="mean(kcal_pp_baseline):Q")
+
+    return configure_plots(
+        chart + rule,
+        "",
+        "",
+        16,
+        14,
+        14,
+    )
+
+
+# %%
+
+
+def annex_chart_spend(df):
+    chart = (
+        alt.Chart(df)
+        .mark_line()
+        .encode(
+            y=alt.X("spend_new:Q", scale=alt.Scale(domain=[15, 20])),
+            x="ed_reduction",
+            color="sales_change_low",
+        )
+    )
+    rule = alt.Chart(df).mark_rule(color="red").encode(y="mean(spend_baseline):Q")
+
+    return configure_plots(
+        chart + rule,
+        "",
+        "",
+        16,
+        14,
+        14,
+    )
+
+
+# %%
 
 
 def create_outputs_scenarios(option, file_name):
@@ -1040,13 +1188,15 @@ num_iterations = 20
 product_share_reform_values = [0.5]  # share of products that are reformulated
 product_share_sale_values = [1]  # share of products whose sales are shifted
 ed_reduction_values = [
+    0,
+    2.5,
     5,
     7.5,
     10,
     12.5,
 ]  # percentage reduction in energy density e.g. 1 indicates a 1% reduction in energy density
-high_sales_change_values = [2.5, 5, 10, 12.5, 15]  # percentage shift in sales
-low_sales_change_values = [2.5, 5, 10]  # percentage shift in sales
+high_sales_change_values = [12.5]  # percentage shift in sales
+low_sales_change_values = [2.5, 5, 7.5, 10]  # percentage shift in sales
 cutoff = 400  # cut off for high energy density
 
 
@@ -1184,6 +1334,8 @@ for product_share_reform in product_share_reform_values:
                             / 52
                         )
 
+                        iteration = _
+
                         # Append the results to the list
                         results.append(
                             {
@@ -1212,6 +1364,7 @@ for product_share_reform in product_share_reform_values:
                                 ed_reduction=ed_reduction,
                                 sales_change_high=sales_change_high,
                                 sales_change_low=sales_change_low,
+                                iteration=iteration,
                             )
                         )
 
@@ -1251,6 +1404,27 @@ avg = (
     .reset_index()
 )
 
+# %%
+# note that when all products are selected (e.g. shares are 1) - all iterations are the same
+sd = (
+    results_df.groupby(
+        [
+            "product_share_reform",
+            "product_share_sale",
+            "sales_change_high",
+            "sales_change_low",
+            "ed_reduction",
+        ]
+    )[
+        [
+            "mean_ed_kg_new",
+            "kcal_pp_new",
+            "spend_new",
+        ]
+    ]
+    .std()
+    .reset_index()
+)
 
 # %%
 # Extract columns with the suffix '_baseline'
@@ -1272,25 +1446,23 @@ df.to_csv(PROJECT_DIR / "outputs/reports/simulation_ED.csv", index=False)
 
 
 # %%
-(
-    ggplot(
-        df,
-        aes(
-            x="mean_ed_kg_diff_percentage",
-            y="kcal_pp_new",
-            color="factor(sales_change_low)",
-        ),
-    )
-    + geom_line()
-    + geom_hline(yintercept=[1607], linetype="dashed")
-    # + geom_hline(yintercept=[1607 - 80])
-    + geom_vline(xintercept=[0], linetype="dashed")
-    + facet_wrap("sales_change_high", labeller="label_both", nrow=4)
-    + labs(
-        x="Change in Volume Weigthed Average ED",
-        y="Per Capita Daily Kcal",
-        color="Sales Increase in Medium/Low ED Products",
-    )
+
+webdr = google_chrome_driver_setup()
+
+save_altair(
+    annex_chart_kcal(df),
+    "annex/energy_density_kcal",
+    driver=webdr,
+)
+
+# %%
+
+webdr = google_chrome_driver_setup()
+
+save_altair(
+    annex_chart_spend(df),
+    "annex/energy_density_spend",
+    driver=webdr,
 )
 
 # %%
@@ -1322,15 +1494,17 @@ options[3]
 webdr = google_chrome_driver_setup()
 
 # x3 examples
-create_outputs_scenarios(options[7], "125_125_5")
-create_outputs_scenarios(options[13], "10_15_5")
-create_outputs_scenarios(options[3], "5_125_25")
+create_outputs_scenarios(options[3], "125_125_5")
+create_outputs_scenarios(options[7], "10_15_5")
+create_outputs_scenarios(options[0], "5_125_25")
 
 # %%
 # Save file
 suitable.to_csv(
     PROJECT_DIR / "outputs/data/scenarios/ed/suitable_scenarios.csv", index=False
 )
+
+# %%
 
 # Workshop plots (stores removed)
 
@@ -1339,21 +1513,65 @@ avg_retailer = pd.read_csv(
     PROJECT_DIR / "outputs/data/scenarios/ed/avg_retailer10_15_5.csv"
 )
 
-# Sort the data based on category order
-category_order = list(avg_retailer.sort_values(by="diff", ascending=False)["store_cat"])
-avg_retailer["store_cat"] = pd.Categorical(avg_retailer["store_cat"], category_order)
-avg_retailer = avg_retailer.sort_values("store_cat")
-perc_plot_work = percent_ed_target_workshop(avg_retailer)
+# %%
 
-baseline_abs_targ = avg_retailer[["store_cat", "target", "ed"]].copy()
-baseline_abs_targ.columns = ["Store", "Absolute Target", "Baseline"]
+
+store_letters = {
+    "Total Iceland": "Store A",
+    "The Co-Operative": "Store B",
+    "Total Asda": "Store C",
+    "Lidl": "Store D",
+    "Aldi": "Store E",
+    "Total Sainsbury's": "Store F",
+    "Ocado Internet": "Store G",
+    "Total Waitrose": "Store H",
+    "Total Morrisons": "Store I",
+    "Total Tesco": "Store J",
+    "Aldi": "Store K",
+    "Total Marks & Spencer": "Store L",
+}
+# %%
+
+avg_retailer["store_letter"] = avg_retailer["store_cat"].map(store_letters)
+
+# %%
+
 # Sort the data based on category order
 category_order = list(
-    baseline_abs_targ.sort_values(by="Baseline", ascending=False)["Store"]
+    avg_retailer.sort_values(by="diff", ascending=False)["store_letter"]
 )
-baseline_abs_targ["Store"] = pd.Categorical(baseline_abs_targ["Store"], category_order)
-baseline_abs_targ = baseline_abs_targ.sort_values("Store")
+avg_retailer["store_cat"] = pd.Categorical(avg_retailer["store_letter"], category_order)
+avg_retailer = avg_retailer.sort_values("store_letter")
+perc_plot_work = percent_ed_target_workshop(avg_retailer)
+
+baseline_abs_targ = avg_retailer[["store_letter", "target", "ed"]].copy()
+baseline_abs_targ.columns = ["store_letter", "Target", "Baseline"]
+# Sort the data based on category order
+category_order = list(
+    baseline_abs_targ.sort_values(by="Baseline", ascending=False)["store_letter"]
+)
+baseline_abs_targ["store_letter"] = pd.Categorical(
+    baseline_abs_targ["store_letter"], category_order
+)
+baseline_abs_targ = baseline_abs_targ.sort_values("store_letter")
+baseline_abs_targ["Target"] = round_to_nearest_5(baseline_abs_targ["Target"])
+baseline_abs_targ["Baseline"] = round_to_nearest_5(baseline_abs_targ["Baseline"])
+
+# %%
+
 avg_ed_targ_work = plot_avg_ed_target_workshop(baseline_abs_targ)
+avg_ed_targ_work
+# %%
+
+webdr = google_chrome_driver_setup()
+
+save_altair(
+    avg_ed_targ_work,
+    "scenarios/ed/workshop/avg_ed_target_10_15_5",
+    driver=webdr,
+)
+
+# %%
 
 # Relative target plot
 df_reduced = pd.read_csv(
@@ -1381,6 +1599,7 @@ Path(PROJECT_DIR / "outputs/figures/html/scenarios/ed/workshop/").mkdir(
 Path(PROJECT_DIR / "outputs/figures/svg/scenarios/ed/workshop/").mkdir(
     parents=True, exist_ok=True
 )
+# %%
 
 # Load web-driver
 webdr = google_chrome_driver_setup()
@@ -1399,3 +1618,260 @@ save_altair(
     "scenarios/ed/workshop/avg_ed_reduced_10_15_5",
     driver=webdr,
 )
+
+
+# %%
+
+# %%
+# density_125_125_5
+option = options[3]
+
+
+full_results = results_data_df[
+    (results_data_df["ed_reduction"] == option[0])
+    & (results_data_df["sales_change_high"] == option[1])
+    & (results_data_df["sales_change_low"] == option[2])
+]
+
+print_row = suitable[
+    [
+        "sales_change_high",
+        "sales_change_low",
+        "ed_reduction",
+        "mean_ed_kg_new",
+        "mean_ed_kcal_new",
+        "mean_ed_kg_baseline",
+        "mean_ed_kcal_baseline",
+        "kcal_pp_baseline",
+        "kcal_pp_new",
+        "spend_baseline",
+        "spend_new",
+        "mean_ed_kg_diff_percentage",
+        "mean_ed_kcal_diff_percentage",
+        "kcal_pp_diff_percentage",
+        "total_prod_diff_percentage",
+        "spend_diff_percentage",
+        "kcal_diff",
+    ]
+]
+
+opt_df = (
+    print_row[
+        (print_row["ed_reduction"] == option[0])
+        & (print_row["sales_change_high"] == option[1])
+        & (print_row["sales_change_low"] == option[2])
+    ].T
+).reset_index()
+
+opt_df.columns = ["Metric", "Value"]
+
+
+scenario_outputs = opt_df[
+    opt_df["Metric"].isin(
+        [
+            "mean_ed_kg_diff_percentage",
+            "kcal_diff",
+            "spend_diff_percentage",
+            "mean_ed_kg_diff_percentage",
+            "mean_ed_kg_new",
+        ]
+    )
+].copy()
+
+
+rename_dict = {
+    "kcal_diff": "Kcal per capita reduction",
+    "spend_diff_percentage": "Average weekly spend per person change",
+    "mean_ed_kg_diff_percentage": "Relative target",
+    "mean_ed_kg_new": "Absolute target",
+}
+
+baseline = (
+    (full_results["ed"] * full_results["kg_w"])
+    .groupby(full_results["product_code"])
+    .sum()
+    / full_results.groupby(["product_code"])["kg_w"].sum()
+).reset_index(name="share")
+
+target = (
+    (full_results["new_ed"] * full_results["kg_w_new"])
+    .groupby(full_results["product_code"])
+    .sum()
+    / full_results.groupby(["product_code"])["kg_w_new"].sum()
+).reset_index(name="share")
+
+plt_df = pd.concat([baseline.assign(when="baseline"), target.assign(when="target")])
+
+plt_df_sub = plt_df.sample(5000)
+density_125_125_5 = plot_density(plt_df_sub, full_results)
+webdr = google_chrome_driver_setup()
+save_altair(density_125_125_5, "scenarios/ed/workshop/density_125_125_5", driver=webdr)
+# %%
+# density_10_15_5
+option = options[7]
+
+
+full_results = results_data_df[
+    (results_data_df["ed_reduction"] == option[0])
+    & (results_data_df["sales_change_high"] == option[1])
+    & (results_data_df["sales_change_low"] == option[2])
+]
+
+print_row = suitable[
+    [
+        "sales_change_high",
+        "sales_change_low",
+        "ed_reduction",
+        "mean_ed_kg_new",
+        "mean_ed_kcal_new",
+        "mean_ed_kg_baseline",
+        "mean_ed_kcal_baseline",
+        "kcal_pp_baseline",
+        "kcal_pp_new",
+        "spend_baseline",
+        "spend_new",
+        "mean_ed_kg_diff_percentage",
+        "mean_ed_kcal_diff_percentage",
+        "kcal_pp_diff_percentage",
+        "total_prod_diff_percentage",
+        "spend_diff_percentage",
+        "kcal_diff",
+    ]
+]
+
+opt_df = (
+    print_row[
+        (print_row["ed_reduction"] == option[0])
+        & (print_row["sales_change_high"] == option[1])
+        & (print_row["sales_change_low"] == option[2])
+    ].T
+).reset_index()
+
+opt_df.columns = ["Metric", "Value"]
+
+
+scenario_outputs = opt_df[
+    opt_df["Metric"].isin(
+        [
+            "mean_ed_kg_diff_percentage",
+            "kcal_diff",
+            "spend_diff_percentage",
+            "mean_ed_kg_diff_percentage",
+            "mean_ed_kg_new",
+        ]
+    )
+].copy()
+
+
+rename_dict = {
+    "kcal_diff": "Kcal per capita reduction",
+    "spend_diff_percentage": "Average weekly spend per person change",
+    "mean_ed_kg_diff_percentage": "Relative target",
+    "mean_ed_kg_new": "Absolute target",
+}
+
+baseline = (
+    (full_results["ed"] * full_results["kg_w"])
+    .groupby(full_results["product_code"])
+    .sum()
+    / full_results.groupby(["product_code"])["kg_w"].sum()
+).reset_index(name="share")
+
+target = (
+    (full_results["new_ed"] * full_results["kg_w_new"])
+    .groupby(full_results["product_code"])
+    .sum()
+    / full_results.groupby(["product_code"])["kg_w_new"].sum()
+).reset_index(name="share")
+
+plt_df = pd.concat([baseline.assign(when="baseline"), target.assign(when="target")])
+
+plt_df_sub = plt_df.sample(5000)
+density_10_15_5 = plot_density(plt_df_sub, full_results)
+webdr = google_chrome_driver_setup()
+save_altair(density_10_15_5, "scenarios/ed/workshop/density_10_15_5", driver=webdr)
+# %%
+# density_5_125_25
+option = options[0]
+
+
+full_results = results_data_df[
+    (results_data_df["ed_reduction"] == option[0])
+    & (results_data_df["sales_change_high"] == option[1])
+    & (results_data_df["sales_change_low"] == option[2])
+]
+
+print_row = suitable[
+    [
+        "sales_change_high",
+        "sales_change_low",
+        "ed_reduction",
+        "mean_ed_kg_new",
+        "mean_ed_kcal_new",
+        "mean_ed_kg_baseline",
+        "mean_ed_kcal_baseline",
+        "kcal_pp_baseline",
+        "kcal_pp_new",
+        "spend_baseline",
+        "spend_new",
+        "mean_ed_kg_diff_percentage",
+        "mean_ed_kcal_diff_percentage",
+        "kcal_pp_diff_percentage",
+        "total_prod_diff_percentage",
+        "spend_diff_percentage",
+        "kcal_diff",
+    ]
+]
+
+opt_df = (
+    print_row[
+        (print_row["ed_reduction"] == option[0])
+        & (print_row["sales_change_high"] == option[1])
+        & (print_row["sales_change_low"] == option[2])
+    ].T
+).reset_index()
+
+opt_df.columns = ["Metric", "Value"]
+
+
+scenario_outputs = opt_df[
+    opt_df["Metric"].isin(
+        [
+            "mean_ed_kg_diff_percentage",
+            "kcal_diff",
+            "spend_diff_percentage",
+            "mean_ed_kg_diff_percentage",
+            "mean_ed_kg_new",
+        ]
+    )
+].copy()
+
+
+rename_dict = {
+    "kcal_diff": "Kcal per capita reduction",
+    "spend_diff_percentage": "Average weekly spend per person change",
+    "mean_ed_kg_diff_percentage": "Relative target",
+    "mean_ed_kg_new": "Absolute target",
+}
+
+baseline = (
+    (full_results["ed"] * full_results["kg_w"])
+    .groupby(full_results["product_code"])
+    .sum()
+    / full_results.groupby(["product_code"])["kg_w"].sum()
+).reset_index(name="share")
+
+target = (
+    (full_results["new_ed"] * full_results["kg_w_new"])
+    .groupby(full_results["product_code"])
+    .sum()
+    / full_results.groupby(["product_code"])["kg_w_new"].sum()
+).reset_index(name="share")
+
+plt_df = pd.concat([baseline.assign(when="baseline"), target.assign(when="target")])
+
+plt_df_sub = plt_df.sample(5000)
+density_5_125_25 = plot_density(plt_df_sub, full_results)
+webdr = google_chrome_driver_setup()
+save_altair(density_5_125_25, "scenarios/ed/workshop/density_5_125_25", driver=webdr)
+# %%

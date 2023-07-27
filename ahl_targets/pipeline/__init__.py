@@ -23,3 +23,30 @@ for folder in input_subdirs:
         parents=True,
         exist_ok=True,
     )
+
+
+# model parameters
+num_iterations = 20
+product_share_reform_values = [0.5]  # share of products that are reformulated
+product_share_sale_values = [1]  # share of products whose sales are shifted
+ed_reduction_values = [
+    0,
+    2.5,
+    5,
+    7.5,
+    10,
+    12.5,
+]  # percentage reduction in energy density e.g. 1 indicates a 1% reduction in energy density
+high_sales_change_values = [12.5]  # percentage shift in sales
+low_sales_change_values = [
+    0,
+    2.5,
+    5,
+    7.5,
+    10,
+    12.5,
+    15,
+    17.5,
+    20,
+]  # percentage shift in sales
+cutoff = 400  # cut off for high energy density

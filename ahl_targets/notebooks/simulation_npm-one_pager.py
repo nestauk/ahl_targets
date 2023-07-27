@@ -1,3 +1,5 @@
+# %%
+
 # Load packages
 from ahl_targets.getters import get_data
 from functools import reduce
@@ -30,7 +32,7 @@ from plotnine import (
 
 
 # %%
-random.seed(42)
+np.random.seed(42)
 
 
 # %%
@@ -350,10 +352,11 @@ def percent_npm_target(avg_retailer):
     )
 
 
+# %%
 def plot_avg_npm_target(baseline_abs_targ):
     # Reshape the data using melt()
     melted_data = baseline_abs_targ.melt(
-        id_vars="Store",
+        id_vars="store_letter",
         value_vars=["Baseline", "Absolute Target"],
         var_name="Variable",
         value_name="Value",
@@ -361,19 +364,14 @@ def plot_avg_npm_target(baseline_abs_targ):
 
     # Create the plot
     base = alt.Chart(baseline_abs_targ).encode(
-        y=alt.Y("Store:N", title="Stores"),
+        y=alt.Y("store_letter:N", title=""),
     )
 
     # Points and lines
     points = base.mark_circle(size=50).encode(
         x=alt.X(
             "Baseline:Q",
-            scale=alt.Scale(
-                domain=[
-                    (melted_data.Value.min() - 3).round(0),
-                    (melted_data.Value.max() + 3).round(0),
-                ]
-            ),
+            scale=alt.Scale(domain=[-3, 2]),
             axis=alt.Axis(title="NPM", grid=False),
         ),
         color="Store",
@@ -386,12 +384,7 @@ def plot_avg_npm_target(baseline_abs_targ):
         .encode(
             x=alt.X(
                 "Absolute Target",
-                scale=alt.Scale(
-                    domain=[
-                        (melted_data.Value.min() - 3).round(0),
-                        (melted_data.Value.max() + 3).round(0),
-                    ]
-                ),
+                scale=alt.Scale(domain=[-3, 2]),
             )
         )
     )
@@ -399,7 +392,7 @@ def plot_avg_npm_target(baseline_abs_targ):
     lines = (
         alt.Chart(melted_data)
         .mark_line(color="blue")
-        .encode(x=alt.X("Value:Q"), y="Store", color="Store")
+        .encode(x=alt.X("Value:Q"), y="store_letter", color="store_letter")
     )
 
     # Add points to the plot
@@ -408,7 +401,7 @@ def plot_avg_npm_target(baseline_abs_targ):
         .encode(
             opacity=alt.value(1),
             shape=alt.Shape(
-                "Variable:N", scale=alt.Scale(range=["circle", "triangle"])
+                "Variable:N", scale=alt.Scale(range=["circle", "triangle"]), title=None
             ),
         )
         .transform_calculate(category="datum.Variable")
@@ -417,7 +410,7 @@ def plot_avg_npm_target(baseline_abs_targ):
     # Annotation
     text = (
         alt.Chart(
-            pd.DataFrame({"value": [baseline_abs_targ["Absolute Target"].loc[0]]})
+            pd.DataFrame({"value": [int(baseline_abs_targ["Absolute Target"].loc[0])]})
         )
         .mark_text(
             align="right", baseline="top", dx=-10, dy=-10, fontSize=16, color="black"
@@ -425,7 +418,9 @@ def plot_avg_npm_target(baseline_abs_targ):
         .encode(
             x="value:Q",
             text=alt.value(
-                "Target = " + str(baseline_abs_targ["Absolute Target"].loc[0].round(1))
+                "Target "
+                + "\u2264 "
+                + str(int(baseline_abs_targ["Absolute Target"].loc[0]))
             ),
         )
     )
@@ -439,34 +434,37 @@ def plot_avg_npm_target(baseline_abs_targ):
         .mark_text(baseline="middle", fontSize=12, color="black", dx=-20)
         .encode(
             x=alt.X("Baseline:Q", title=""),
-            y=alt.Y("Store:N", title=""),
+            y=alt.Y("store_letter:N", title=""),
             text=alt.Text("Baseline:Q", format=".1f"),
         )
     )
     ed_text_right = (
         alt.Chart(baseline_abs_targ)
         .transform_filter(
-            alt.datum["Baseline"] > baseline_abs_targ["Absolute Target"].loc[0]
+            alt.datum["Baseline"] >= baseline_abs_targ["Absolute Target"].loc[0]
         )
         .mark_text(baseline="middle", fontSize=12, color="black", dx=20)
         .encode(
             x=alt.X("Baseline:Q", title=""),
-            y=alt.Y("Store:N", title=""),
-            text=alt.Text("Baseline:Q", format=".1f"),
+            y=alt.Y("store_letter:N", title=""),
+            text=alt.Text("Baseline:Q", format=".0f"),
         )
     )
 
     chart = (
         points + lines + shapes + line + text + ed_text_left + ed_text_right
-    ).properties(width=500, height=400)
+    ).properties(width=500, height=500)
     return configure_plots(
         chart,
-        "Store baseline compared to the absolute target",
+        "",
         "",
         18,
         14,
         15,
     )
+
+
+# %%
 
 
 def avg_npm_comp_reduced(source):
@@ -609,11 +607,12 @@ def percent_npm_target_workshop(avg_retailer):
     )
 
 
+# %%
 def plot_avg_npm_target_workshop(baseline_abs_targ):
     # Reshape the data using melt()
     melted_data = baseline_abs_targ.melt(
-        id_vars="Store",
-        value_vars=["Baseline", "Absolute Target"],
+        id_vars="store_letter",
+        value_vars=["Baseline", "Target"],
         var_name="Variable",
         value_name="Value",
     )
@@ -621,9 +620,8 @@ def plot_avg_npm_target_workshop(baseline_abs_targ):
     # Create the plot
     base = alt.Chart(baseline_abs_targ).encode(
         y=alt.Y(
-            "Store:N",
-            title="Store (>1.5% market share)",
-            axis=alt.Axis(labels=False),
+            "store_letter:N",
+            title="",
             sort=None,
         ),
     )
@@ -632,18 +630,13 @@ def plot_avg_npm_target_workshop(baseline_abs_targ):
     points = base.mark_circle(size=1).encode(
         x=alt.X(
             "Baseline:Q",
-            scale=alt.Scale(
-                domain=[
-                    (melted_data.Value.min() - 3).round(0),
-                    (melted_data.Value.max() + 3).round(0),
-                ]
-            ),
+            scale=alt.Scale(domain=[-2.5, 2]),
             axis=alt.Axis(
                 title="Sales weighted average NPM score across whole portfolio",
                 grid=False,
             ),
         ),
-        color="Store",
+        color="store_letter",
     )
 
     # Add points to the plot
@@ -652,13 +645,8 @@ def plot_avg_npm_target_workshop(baseline_abs_targ):
         .mark_rule(color="black", size=2, strokeDash=[2, 2])
         .encode(
             x=alt.X(
-                "Absolute Target",
-                scale=alt.Scale(
-                    domain=[
-                        (melted_data.Value.min() - 3).round(0),
-                        (melted_data.Value.max() + 3).round(0),
-                    ]
-                ),
+                "Target",
+                scale=alt.Scale(domain=[-2.5, 2]),
             )
         )
     )
@@ -668,8 +656,8 @@ def plot_avg_npm_target_workshop(baseline_abs_targ):
         .mark_line(color="blue")
         .encode(
             x=alt.X("Value:Q"),
-            y=alt.Y("Store", title="", axis=alt.Axis(labels=False), sort=None),
-            color=alt.Color("Store", legend=None),
+            y=alt.Y("store_letter", sort=None),
+            color=alt.Color("store_letter", legend=None),
         )
     )
 
@@ -679,7 +667,16 @@ def plot_avg_npm_target_workshop(baseline_abs_targ):
         .encode(
             opacity=alt.value(1),
             shape=alt.Shape(
-                "Variable:N", scale=alt.Scale(range=["circle", "triangle"])
+                "Variable:N",
+                scale=alt.Scale(range=["circle", "triangle"]),
+                title=None,
+                legend=alt.Legend(
+                    orient="none",
+                    legendX=400,
+                    legendY=200,
+                    direction="vertical",
+                    titleAnchor="middle",
+                ),
             ),
         )
         .transform_calculate(category="datum.Variable")
@@ -687,16 +684,14 @@ def plot_avg_npm_target_workshop(baseline_abs_targ):
 
     # Annotation
     text = (
-        alt.Chart(
-            pd.DataFrame({"value": [baseline_abs_targ["Absolute Target"].loc[0]]})
-        )
+        alt.Chart(pd.DataFrame({"value": [int(baseline_abs_targ["Target"].loc[0])]}))
         .mark_text(
-            align="right", baseline="top", dx=-10, dy=-10, fontSize=16, color="black"
+            align="right", baseline="top", dx=-30, dy=-10, fontSize=16, color="black"
         )
         .encode(
             x="value:Q",
             text=alt.value(
-                "Target = " + str(baseline_abs_targ["Absolute Target"].loc[0].round(1))
+                "Target " + "\u2264 " + str(baseline_abs_targ["Target"].loc[0].round(1))
             ),
         )
     )
@@ -704,40 +699,39 @@ def plot_avg_npm_target_workshop(baseline_abs_targ):
     # Annotation for 'ed' values
     ed_text_left = (
         alt.Chart(baseline_abs_targ)
-        .transform_filter(
-            alt.datum["Baseline"] < baseline_abs_targ["Absolute Target"].loc[0]
-        )
+        .transform_filter(alt.datum["Baseline"] < baseline_abs_targ["Target"].loc[0])
         .mark_text(baseline="middle", fontSize=12, color="black", dx=-20)
         .encode(
             x=alt.X("Baseline:Q", title=""),
-            y=alt.Y("Store:N", title="", sort=None),
+            y=alt.Y("store_letter:N", title="", sort=None),
             text=alt.Text("Baseline:Q", format=".1f"),
         )
     )
     ed_text_right = (
         alt.Chart(baseline_abs_targ)
-        .transform_filter(
-            alt.datum["Baseline"] > baseline_abs_targ["Absolute Target"].loc[0]
-        )
+        .transform_filter(alt.datum["Baseline"] >= baseline_abs_targ["Target"].loc[0])
         .mark_text(baseline="middle", fontSize=12, color="black", dx=20)
         .encode(
             x=alt.X("Baseline:Q", title=""),
-            y=alt.Y("Store:N", title="", sort=None),
+            y=alt.Y("store_letter:N", title="", sort=None),
             text=alt.Text("Baseline:Q", format=".1f"),
         )
     )
 
     chart = (
         points + lines + shapes + line + text + ed_text_left + ed_text_right
-    ).properties(width=500, height=400)
+    ).properties(width=500, height=500)
     return configure_plots(
         chart,
-        "Store baseline compared to the absolute target",
+        "",
         "",
         18,
         14,
         15,
     )
+
+
+# %%
 
 
 def avg_npm_comp_reduced_workshop(source):
@@ -866,203 +860,205 @@ def avg_npm_comp_reduced_workshop(source):
     )
 
 
-def create_outputs_scenarios(option, file_name):
-    # Create paths
-    path_png = "outputs/figures/png/scenarios/npm/" + file_name + "/"
-    path_svg = "outputs/figures/svg/scenarios/npm/" + file_name + "/"
-    path_html = "outputs/figures/html/scenarios/npm/" + file_name + "/"
-    Path(PROJECT_DIR / path_png).mkdir(parents=True, exist_ok=True)
-    Path(PROJECT_DIR / path_svg).mkdir(parents=True, exist_ok=True)
-    Path(PROJECT_DIR / path_html).mkdir(parents=True, exist_ok=True)
-    # Input scenarios here
-    full_results = results_data_df[
-        (results_data_df["npm_reduction"] == option[0])
-        & (results_data_df["sales_change_high"] == option[1])
-        & (results_data_df["sales_change_low"] == option[2])
-    ]
+# %%
 
-    # A line for each one pager
-    print_row = suitable[
-        [
-            "sales_change_high",
-            "sales_change_low",
-            "npm_reduction",
-            "mean_npm_kg_new",
-            "mean_npm_kcal_new",
-            "mean_npm_kg_baseline",
-            "mean_npm_kcal_baseline",
-            "kcal_pp_baseline",
-            "kcal_pp_new",
-            "spend_baseline",
-            "spend_new",
-            "mean_npm_kg_diff_percentage",
-            "mean_npm_kcal_diff_percentage",
-            "kcal_pp_diff_percentage",
-            "total_prod_diff_percentage",
-            "spend_diff_percentage",
-            "kcal_diff",
-        ]
-    ]
+# def create_outputs_scenarios(option, file_name):
+#     # Create paths
+#     path_png = "outputs/figures/png/scenarios/npm/" + file_name + "/"
+#     path_svg = "outputs/figures/svg/scenarios/npm/" + file_name + "/"
+#     path_html = "outputs/figures/html/scenarios/npm/" + file_name + "/"
+#     Path(PROJECT_DIR / path_png).mkdir(parents=True, exist_ok=True)
+#     Path(PROJECT_DIR / path_svg).mkdir(parents=True, exist_ok=True)
+#     Path(PROJECT_DIR / path_html).mkdir(parents=True, exist_ok=True)
+#     # Input scenarios here
+#     full_results = results_data_df[
+#         (results_data_df["npm_reduction"] == option[0])
+#         & (results_data_df["sales_change_high"] == option[1])
+#         & (results_data_df["sales_change_low"] == option[2])
+#     ]
 
-    # print_row[
-    #    [
-    #        "mean_npm_kg_diff_percentage",
-    #        "mean_npm_kcal_diff_percentage",
-    #        "kcal_pp_diff_percentage",
-    #        "total_prod_diff_percentage",
-    #        "spend_diff_percentage",
-    #    ]
-    # ] = print_row[
-    #    [
-    #        "mean_npm_kg_diff_percentage",
-    #        "mean_npm_kcal_diff_percentage",
-    #        "kcal_pp_diff_percentage",
-    #        "total_prod_diff_percentage",
-    #        "spend_diff_percentage",
-    #    ]
-    # ].apply(
-    #    lambda x: x * 100
-    # )
+#     # A line for each one pager
+#     print_row = suitable[
+#         [
+#             "sales_change_high",
+#             "sales_change_low",
+#             "npm_reduction",
+#             "mean_npm_kg_new",
+#             "mean_npm_kcal_new",
+#             "mean_npm_kg_baseline",
+#             "mean_npm_kcal_baseline",
+#             "kcal_pp_baseline",
+#             "kcal_pp_new",
+#             "spend_baseline",
+#             "spend_new",
+#             "mean_npm_kg_diff_percentage",
+#             "mean_npm_kcal_diff_percentage",
+#             "kcal_pp_diff_percentage",
+#             "total_prod_diff_percentage",
+#             "spend_diff_percentage",
+#             "kcal_diff",
+#         ]
+#     ]
 
-    opt_df = (
-        print_row[
-            (print_row["npm_reduction"] == option[0])
-            & (print_row["sales_change_high"] == option[1])
-            & (print_row["sales_change_low"] == option[2])
-        ].T
-    ).reset_index()
-    opt_df.columns = ["Metric", "Value"]
+#     # print_row[
+#     #    [
+#     #        "mean_npm_kg_diff_percentage",
+#     #        "mean_npm_kcal_diff_percentage",
+#     #        "kcal_pp_diff_percentage",
+#     #        "total_prod_diff_percentage",
+#     #        "spend_diff_percentage",
+#     #    ]
+#     # ] = print_row[
+#     #    [
+#     #        "mean_npm_kg_diff_percentage",
+#     #        "mean_npm_kcal_diff_percentage",
+#     #        "kcal_pp_diff_percentage",
+#     #        "total_prod_diff_percentage",
+#     #        "spend_diff_percentage",
+#     #    ]
+#     # ].apply(
+#     #    lambda x: x * 100
+#     # )
 
-    scenario_outputs = opt_df[
-        opt_df["Metric"].isin(
-            [
-                "mean_npm_kg_diff_percentage",
-                "kcal_diff",
-                "spend_diff_percentage",
-                "mean_npm_kg_diff_percentage",
-                "mean_npm_kg_new",
-            ]
-        )
-    ].copy()
-    rename_dict = {
-        "kcal_diff": "Kcal per capita reduction",
-        "spend_diff_percentage": "Average weekly spend per person change",
-        "mean_npm_kg_diff_percentage": "Relative target",
-        "mean_npm_kg_new": "Absolute target",
-    }
+#     opt_df = (
+#         print_row[
+#             (print_row["npm_reduction"] == option[0])
+#             & (print_row["sales_change_high"] == option[1])
+#             & (print_row["sales_change_low"] == option[2])
+#         ].T
+#     ).reset_index()
+#     opt_df.columns = ["Metric", "Value"]
 
-    scenario_outputs["Metric"].replace(rename_dict, inplace=True)
+#     scenario_outputs = opt_df[
+#         opt_df["Metric"].isin(
+#             [
+#                 "mean_npm_kg_diff_percentage",
+#                 "kcal_diff",
+#                 "spend_diff_percentage",
+#                 "mean_npm_kg_diff_percentage",
+#                 "mean_npm_kg_new",
+#             ]
+#         )
+#     ].copy()
+#     rename_dict = {
+#         "kcal_diff": "Kcal per capita reduction",
+#         "spend_diff_percentage": "Average weekly spend per person change",
+#         "mean_npm_kg_diff_percentage": "Relative target",
+#         "mean_npm_kg_new": "Absolute target",
+#     }
 
-    path = "outputs/data/scenarios/npm/metric_table_suitable_" + file_name + ".csv"
-    opt_df.to_csv(PROJECT_DIR / path, index=False)
-    path = "outputs/data/scenarios/npm/scenario_outputs_" + file_name + ".csv"
-    scenario_outputs.to_csv(PROJECT_DIR / path, index=False)
+#     scenario_outputs["Metric"].replace(rename_dict, inplace=True)
 
-    grouped = full_results.groupby(
-        [
-            "product_code",
-            "rst_4_market_sector",
-            "store_cat",
-            "product_share_reform",
-            "product_share_sale",
-            "npm_reduction",
-            "sales_change_high",
-            "sales_change_low",
-        ]
-    )
-    density_plot = grouped.mean().reset_index()
-    plot_volume_weighted_npm(density_plot, file_name, path_png)
+#     path = "outputs/data/scenarios/npm/metric_table_suitable_" + file_name + ".csv"
+#     opt_df.to_csv(PROJECT_DIR / path, index=False)
+#     path = "outputs/data/scenarios/npm/scenario_outputs_" + file_name + ".csv"
+#     scenario_outputs.to_csv(PROJECT_DIR / path, index=False)
 
-    # from store_weight, generate the average npm_score weighted by kg for each retailer
-    avg_retailer = (
-        (store_weight_npm["kg_w"] * store_weight_npm["npm_score"])
-        .groupby(store_weight_npm["store_cat"])
-        .sum()
-        / store_weight_npm["kg_w"].groupby(store_weight_npm["store_cat"]).sum()
-    ).reset_index(name="npm_score")
-    avg_retailer["weight"] = (
-        store_weight_npm.groupby(["store_cat"])["kg_w"].sum().reset_index()["kg_w"]
-    )
-    avg_retailer["target"] = (
-        density_plot["new_npm"] * density_plot["kg_w_new"]
-    ).sum() / density_plot["kg_w_new"].sum()
-    avg_retailer["diff"] = avg_retailer["npm_score"] - avg_retailer["target"]
-    # avg_retailer["diff_percentage"] = 100 * (
-    #    avg_retailer["target"] / avg_retailer["npm_score"] - 1
-    # )
+#     grouped = full_results.groupby(
+#         [
+#             "product_code",
+#             "rst_4_market_sector",
+#             "store_cat",
+#             "product_share_reform",
+#             "product_share_sale",
+#             "npm_reduction",
+#             "sales_change_high",
+#             "sales_change_low",
+#         ]
+#     )
+#     density_plot = grouped.mean().reset_index()
+#     plot_volume_weighted_npm(density_plot, file_name, path_png)
 
-    avg_retailer["diff_percentage"] = (
-        (avg_retailer["target"] - avg_retailer["npm_score"])
-        / abs(avg_retailer["npm_score"])
-    ) * 100
+#     # from store_weight, generate the average npm_score weighted by kg for each retailer
+#     avg_retailer = (
+#         (store_weight_npm["kg_w"] * store_weight_npm["npm_score"])
+#         .groupby(store_weight_npm["store_cat"])
+#         .sum()
+#         / store_weight_npm["kg_w"].groupby(store_weight_npm["store_cat"]).sum()
+#     ).reset_index(name="npm_score")
+#     avg_retailer["weight"] = (
+#         store_weight_npm.groupby(["store_cat"])["kg_w"].sum().reset_index()["kg_w"]
+#     )
+#     avg_retailer["target"] = (
+#         density_plot["new_npm"] * density_plot["kg_w_new"]
+#     ).sum() / density_plot["kg_w_new"].sum()
+#     avg_retailer["diff"] = avg_retailer["npm_score"] - avg_retailer["target"]
+#     # avg_retailer["diff_percentage"] = 100 * (
+#     #    avg_retailer["target"] / avg_retailer["npm_score"] - 1
+#     # )
 
-    baseline_abs_targ = avg_retailer[["store_cat", "target", "npm_score"]].copy()
-    baseline_abs_targ.columns = ["Store", "Absolute Target", "Baseline"]
+#     avg_retailer["diff_percentage"] = (
+#         (avg_retailer["target"] - avg_retailer["npm_score"])
+#         / abs(avg_retailer["npm_score"])
+#     ) * 100
 
-    perc_plot = percent_npm_target(avg_retailer)
-    avg_npm_targ = plot_avg_npm_target(baseline_abs_targ)
-    save_altair(
-        perc_plot,
-        "scenarios/npm/" + file_name + "/perc_npm_" + file_name,
-        driver=webdr,
-    )
-    save_altair(
-        avg_npm_targ,
-        "scenarios/npm/" + file_name + "/avg_npm_targ_" + file_name,
-        driver=webdr,
-    )
+#     baseline_abs_targ = avg_retailer[["store_cat", "target", "npm_score"]].copy()
+#     baseline_abs_targ.columns = ["Store", "Absolute Target", "Baseline"]
 
-    values = avg_retailer["npm_score"]
-    weights = avg_retailer["weight"]
-    target_average = avg_retailer["target"].mean()
+#     perc_plot = percent_npm_target(avg_retailer)
+#     avg_npm_targ = plot_avg_npm_target(baseline_abs_targ)
+#     save_altair(
+#         perc_plot,
+#         "scenarios/npm/" + file_name + "/perc_npm_" + file_name,
+#         driver=webdr,
+#     )
+#     save_altair(
+#         avg_npm_targ,
+#         "scenarios/npm/" + file_name + "/avg_npm_targ_" + file_name,
+#         driver=webdr,
+#     )
 
-    current_average = np.average(values, weights=weights)
-    percentage_reduction = (current_average - target_average) / current_average * 100
+#     values = avg_retailer["npm_score"]
+#     weights = avg_retailer["weight"]
+#     target_average = avg_retailer["target"].mean()
 
-    reduced_values = values * (1 - percentage_reduction / 100)
-    reductions = values - reduced_values
-    reduction_percentages = reductions / values * 100
-    weighted_average = np.average(reduced_values, weights=weights)
+#     current_average = np.average(values, weights=weights)
+#     percentage_reduction = (current_average - target_average) / current_average * 100
 
-    print("Reduced values:", reduced_values)
-    print("Weighted average:", weighted_average)
-    print("Current average:", current_average)
-    print("Target average:", target_average)
+#     reduced_values = values * (1 - percentage_reduction / 100)
+#     reductions = values - reduced_values
+#     reduction_percentages = reductions / values * 100
+#     weighted_average = np.average(reduced_values, weights=weights)
 
-    print("Overall Percentage reduction needed: {:.2f}%".format(percentage_reduction))
-    for i in range(len(values)):
-        print("Value {}: {:.2f}% reduction".format(i + 1, reduction_percentages[i]))
+#     print("Reduced values:", reduced_values)
+#     print("Weighted average:", weighted_average)
+#     print("Current average:", current_average)
+#     print("Target average:", target_average)
 
-    if np.isclose(weighted_average, target_average):
-        print("The target average is the same as the calculated weighted average.")
-    else:
-        print("The target average is different from the calculated weighted average.")
+#     print("Overall Percentage reduction needed: {:.2f}%".format(percentage_reduction))
+#     for i in range(len(values)):
+#         print("Value {}: {:.2f}% reduction".format(i + 1, reduction_percentages[i]))
 
-    npm_reduced_df = pd.concat(
-        [avg_retailer[["store_cat", "npm_score", "target"]], reduced_values], axis=1
-    )
-    npm_reduced_df.columns = ["store", "Baseline", "absolute target", "Relative Target"]
-    average_npm_reduced = avg_npm_comp_reduced(
-        npm_reduced_df[["store", "Baseline", "Relative Target"]]
-    )
+#     if np.isclose(weighted_average, target_average):
+#         print("The target average is the same as the calculated weighted average.")
+#     else:
+#         print("The target average is different from the calculated weighted average.")
 
-    save_altair(
-        average_npm_reduced,
-        "scenarios/npm/" + file_name + "/avg_npm_reduced_" + file_name,
-        driver=webdr,
-    )
+#     npm_reduced_df = pd.concat(
+#         [avg_retailer[["store_cat", "npm_score", "target"]], reduced_values], axis=1
+#     )
+#     npm_reduced_df.columns = ["store", "Baseline", "absolute target", "Relative Target"]
+#     average_npm_reduced = avg_npm_comp_reduced(
+#         npm_reduced_df[["store", "Baseline", "Relative Target"]]
+#     )
 
-    npm_reduced_df.columns = [
-        "Store",
-        "Average NPM Score",
-        "Absolute Target",
-        "Relative Target",
-    ]
-    # Save tables
-    path = "outputs/data/scenarios/npm/avg_npm_reduced" + file_name + ".csv"
-    npm_reduced_df.to_csv(PROJECT_DIR / path, index=False)
-    path = "outputs/data/scenarios/npm/avg_retailer" + file_name + ".csv"
-    avg_retailer.to_csv(PROJECT_DIR / path, index=False)
+#     save_altair(
+#         average_npm_reduced,
+#         "scenarios/npm/" + file_name + "/avg_npm_reduced_" + file_name,
+#         driver=webdr,
+#     )
+
+#     npm_reduced_df.columns = [
+#         "Store",
+#         "Average NPM Score",
+#         "Absolute Target",
+#         "Relative Target",
+#     ]
+#     # Save tables
+#     path = "outputs/data/scenarios/npm/avg_npm_reduced" + file_name + ".csv"
+#     npm_reduced_df.to_csv(PROJECT_DIR / path, index=False)
+#     path = "outputs/data/scenarios/npm/avg_retailer" + file_name + ".csv"
+#     avg_retailer.to_csv(PROJECT_DIR / path, index=False)
 
 
 # %%
@@ -1114,8 +1110,8 @@ num_iterations = 20
 product_share_reform_values = [0.5]  # share of products that are reformulated
 product_share_sale_values = [1]  # share of products whose sales are shifted
 npm_reduction_values = [1, 3, 5]  # reduction in NPM
-high_sales_change_values = [5, 10, 12.5, 15]  # percentage shift in sales
-low_sales_change_values = [2.5, 5, 10]  # percentage shift in sales
+high_sales_change_values = [10, 12.5, 15]  # percentage shift in sales
+low_sales_change_values = [5, 10]  # percentage shift in sales
 cutoff = 4  # cut off for high NPM
 
 
@@ -1345,33 +1341,6 @@ df.to_csv(PROJECT_DIR / "outputs/reports/simulation_NPM.csv", index=False)
 
 
 # %%
-df.head()
-
-
-# %%
-(
-    ggplot(
-        df,
-        aes(
-            x="mean_npm_kg_diff_percentage",
-            y="kcal_pp_new",
-            color="factor(sales_change_low)",
-        ),
-    )
-    + geom_line()
-    + geom_hline(yintercept=[1607], linetype="dashed")
-    + geom_hline(yintercept=[1607 - 80])
-    + geom_vline(xintercept=[0], linetype="dashed")
-    + facet_wrap("sales_change_high", labeller="label_both", nrow=4)
-    + labs(
-        x="Change in Volume Weigthed Average NPM",
-        y="Per Capita Daily Kcal",
-        color="Sales Increase in Medium/Low NPM Products",
-    )
-)
-
-
-# %%
 # suitable scenarios
 suitable = df[
     (df["mean_npm_kg_diff_percentage"] < 0)
@@ -1406,9 +1375,9 @@ options[4]
 webdr = google_chrome_driver_setup()
 
 # x3 examples for 1 pagers
-create_outputs_scenarios(options[4], "1_12_5")
-create_outputs_scenarios(options[2], "3_10_5")
-create_outputs_scenarios(options[10], "5_15_10")
+# create_outputs_scenarios(options[4], "1_12_5")
+# create_outputs_scenarios(options[2], "3_10_5")
+# create_outputs_scenarios(options[10], "5_15_10")
 
 # %%
 # Save file
@@ -1416,27 +1385,168 @@ suitable.to_csv(
     PROJECT_DIR / "outputs/data/scenarios/npm/suitable_scenarios_npm.csv", index=False
 )
 
-# Workshop plots (stores removed)
+# %%
 
-# Absolute target plots
-avg_retailer = pd.read_csv(
-    PROJECT_DIR / "outputs/data/scenarios/npm/avg_retailer3_10_5.csv"
+option = options[0]
+
+full_results = results_data_df[
+    (results_data_df["npm_reduction"] == option[0])
+    & (results_data_df["sales_change_high"] == option[1])
+    & (results_data_df["sales_change_low"] == option[2])
+]
+
+# A line for each one pager
+print_row = suitable[
+    [
+        "sales_change_high",
+        "sales_change_low",
+        "npm_reduction",
+        "mean_npm_kg_new",
+        "mean_npm_kcal_new",
+        "mean_npm_kg_baseline",
+        "mean_npm_kcal_baseline",
+        "kcal_pp_baseline",
+        "kcal_pp_new",
+        "spend_baseline",
+        "spend_new",
+        "mean_npm_kg_diff_percentage",
+        "mean_npm_kcal_diff_percentage",
+        "kcal_pp_diff_percentage",
+        "total_prod_diff_percentage",
+        "spend_diff_percentage",
+        "kcal_diff",
+    ]
+]
+
+opt_df = (
+    print_row[
+        (print_row["npm_reduction"] == option[0])
+        & (print_row["sales_change_high"] == option[1])
+        & (print_row["sales_change_low"] == option[2])
+    ].T
+).reset_index()
+opt_df.columns = ["Metric", "Value"]
+
+scenario_outputs = opt_df[
+    opt_df["Metric"].isin(
+        [
+            "mean_npm_kg_diff_percentage",
+            "kcal_diff",
+            "spend_diff_percentage",
+            "mean_npm_kg_diff_percentage",
+            "mean_npm_kg_new",
+        ]
+    )
+].copy()
+rename_dict = {
+    "kcal_diff": "Kcal per capita reduction",
+    "spend_diff_percentage": "Average weekly spend per person change",
+    "mean_npm_kg_diff_percentage": "Relative target",
+    "mean_npm_kg_new": "Absolute target",
+}
+
+scenario_outputs["Metric"].replace(rename_dict, inplace=True)
+
+
+grouped = full_results.groupby(
+    [
+        "product_code",
+        "rst_4_market_sector",
+        "store_cat",
+        "product_share_reform",
+        "product_share_sale",
+        "npm_reduction",
+        "sales_change_high",
+        "sales_change_low",
+    ]
 )
+density_plot = grouped.mean().reset_index()
 
-# Sort the data based on category order
-category_order = list(avg_retailer.sort_values(by="diff", ascending=False)["store_cat"])
-avg_retailer["store_cat"] = pd.Categorical(avg_retailer["store_cat"], category_order)
-avg_retailer = avg_retailer.sort_values("store_cat")
-perc_plot_work = percent_npm_target_workshop(avg_retailer)
-baseline_abs_targ = avg_retailer[["store_cat", "target", "npm_score"]].copy()
-baseline_abs_targ.columns = ["Store", "Absolute Target", "Baseline"]
+# from store_weight, generate the average npm_score weighted by kg for each retailer
+avg_retailer = (
+    (store_weight_npm["kg_w"] * store_weight_npm["npm_score"])
+    .groupby(store_weight_npm["store_cat"])
+    .sum()
+    / store_weight_npm["kg_w"].groupby(store_weight_npm["store_cat"]).sum()
+).reset_index(name="npm_score")
+avg_retailer["weight"] = (
+    store_weight_npm.groupby(["store_cat"])["kg_w"].sum().reset_index()["kg_w"]
+)
+avg_retailer["target"] = (
+    density_plot["new_npm"] * density_plot["kg_w_new"]
+).sum() / density_plot["kg_w_new"].sum()
+avg_retailer["diff"] = avg_retailer["npm_score"] - avg_retailer["target"]
+# avg_retailer["diff_percentage"] = 100 * (
+#    avg_retailer["target"] / avg_retailer["npm_score"] - 1
+# )
+
+avg_retailer["diff_percentage"] = (
+    (avg_retailer["target"] - avg_retailer["npm_score"])
+    / abs(avg_retailer["npm_score"])
+) * 100
+
+
+# %%
+
+
+store_letters = {
+    "Total Iceland": "Store A",
+    "The Co-Operative": "Store B",
+    "Total Asda": "Store C",
+    "Lidl": "Store D",
+    "Aldi": "Store E",
+    "Total Sainsbury's": "Store F",
+    "Ocado Internet": "Store G",
+    "Total Waitrose": "Store H",
+    "Total Morrisons": "Store I",
+    "Total Tesco": "Store J",
+    "Aldi": "Store K",
+    "Total Marks & Spencer": "Store L",
+}
+# %%
+
+avg_retailer["store_letter"] = avg_retailer["store_cat"].map(store_letters)
+# %%
+
+
+# %%
 # Sort the data based on category order
 category_order = list(
-    baseline_abs_targ.sort_values(by="Baseline", ascending=False)["Store"]
+    avg_retailer.sort_values(by="diff", ascending=False)["store_letter"]
 )
-baseline_abs_targ["Store"] = pd.Categorical(baseline_abs_targ["Store"], category_order)
-baseline_abs_targ = baseline_abs_targ.sort_values("Store")
+avg_retailer["store_letter"] = pd.Categorical(
+    avg_retailer["store_letter"], category_order
+)
+avg_retailer = avg_retailer.sort_values("store_letter")
+perc_plot_work = percent_npm_target_workshop(avg_retailer)
+
+baseline_abs_targ = avg_retailer[["store_letter", "target", "npm_score"]].copy()
+baseline_abs_targ.columns = ["store_letter", "Target", "Baseline"]
+
+# Sort the data based on category order
+category_order = list(
+    baseline_abs_targ.sort_values(by="Baseline", ascending=False)["store_letter"]
+)
+baseline_abs_targ["store_letter"] = pd.Categorical(
+    baseline_abs_targ["store_letter"], category_order
+)
+baseline_abs_targ = baseline_abs_targ.sort_values("store_letter")
+
+
+# %%
 avg_npm_targ_work = plot_avg_npm_target_workshop(baseline_abs_targ)
+avg_npm_targ_work
+# %%
+
+webdr = google_chrome_driver_setup()
+
+save_altair(
+    avg_npm_targ_work,
+    "scenarios/npm/workshop/avg_npm_target_3_10_5",
+    driver=webdr,
+)
+
+# %%
 
 # Relative target plot
 df_reduced = pd.read_csv(
@@ -1481,3 +1591,166 @@ save_altair(
     "scenarios/npm/workshop/avg_npm_reduced_3_10_5",
     driver=webdr,
 )
+
+
+# %%
+def plot_density(plt_df_sub, full_results):
+    chart = (
+        alt.Chart(plt_df_sub)
+        .transform_density(
+            "share", as_=["size", "density"], groupby=["when"], bandwidth=5
+        )
+        .mark_line()
+        .encode(
+            x=alt.X(
+                "size:Q",
+                axis=alt.Axis(title="Sales Weighted Average NPM Score"),
+                scale=alt.Scale(domain=[-15, 30]),
+            ),
+            y=alt.Y("density:Q", axis=alt.Axis(title="Weighted Sales (%)", format="%")),
+            color=alt.Color("when:N", legend=alt.Legend(title="")),
+        )
+    )
+
+    share_before = (
+        (full_results["npm_score"] * full_results["kg_w"])
+    ).sum() / full_results["kg_w"].sum()
+    share_after = (
+        (full_results["new_npm"] * full_results["kg_w_new"])
+    ).sum() / full_results["kg_w_new"].sum()
+
+    vertical_lines = [share_before, share_after]
+    mean_values = [0.01, 0.02]
+    label_position = [share_before + 8, share_after - 1]
+
+    # Create a DataFrame for the vertical lines, mean values, and line styles
+    labels_df = pd.DataFrame({"x": vertical_lines, "mean_value": mean_values})
+
+    labels_pos = pd.DataFrame({"x": label_position, "mean_value": mean_values})
+
+    labels_pos["label"] = [
+        "Mean before:" + str(round(share_before, 1)),
+        "Mean after:" + str(round(share_after, 1)),
+    ]  # Example labels, replace with desired labels
+    labels_df["line_style"] = [
+        "solid",
+        "dashed",
+    ]  # Example line styles, replace with desired styles
+    labels_pos["offset"] = [0.02, 0.015]
+
+    layered_chart = alt.layer(
+        chart,
+        alt.Chart(labels_df)
+        .mark_rule()
+        .encode(
+            x="x:Q",
+            color=alt.ColorValue("black"),
+            strokeDash=alt.StrokeDash("line_style:N", legend=None),
+        ),
+        alt.Chart(labels_pos)
+        .mark_text(align="right", baseline="bottom", fontSize=12)
+        .encode(
+            x="x:Q", y=alt.Y("offset:Q"), text="label", color=alt.ColorValue("black")
+        ),
+    ).properties(height=300, width=600)
+
+    return configure_plots(
+        layered_chart,
+        "Distribution of Sales Weighted Average NPM Score",
+        "",
+        16,
+        14,
+        14,
+    )
+
+
+# %%
+# npm_1_125_5
+option = options[2]
+
+
+full_results = results_data_df[
+    (results_data_df["npm_reduction"] == option[0])
+    & (results_data_df["sales_change_high"] == option[1])
+    & (results_data_df["sales_change_low"] == option[2])
+]
+# %%
+
+print_row = suitable[
+    [
+        "sales_change_high",
+        "sales_change_low",
+        "npm_reduction",
+        "mean_npm_kg_new",
+        "mean_npm_kcal_new",
+        "mean_npm_kg_baseline",
+        "mean_npm_kcal_baseline",
+        "kcal_pp_baseline",
+        "kcal_pp_new",
+        "spend_baseline",
+        "spend_new",
+        "mean_npm_kg_diff_percentage",
+        "mean_npm_kcal_diff_percentage",
+        "kcal_pp_diff_percentage",
+        "total_prod_diff_percentage",
+        "spend_diff_percentage",
+        "kcal_diff",
+    ]
+]
+
+opt_df = (
+    print_row[
+        (print_row["npm_reduction"] == option[0])
+        & (print_row["sales_change_high"] == option[1])
+        & (print_row["sales_change_low"] == option[2])
+    ].T
+).reset_index()
+opt_df.columns = ["Metric", "Value"]
+
+
+scenario_outputs = opt_df[
+    opt_df["Metric"].isin(
+        [
+            "mean_npm_kg_diff_percentage",
+            "kcal_diff",
+            "spend_diff_percentage",
+            "mean_npm_kg_diff_percentage",
+            "mean_npm_kg_new",
+        ]
+    )
+].copy()
+rename_dict = {
+    "kcal_diff": "Kcal per capita reduction",
+    "spend_diff_percentage": "Average weekly spend per person change",
+    "mean_npm_kg_diff_percentage": "Relative target",
+    "mean_npm_kg_new": "Absolute target",
+}
+
+# %%
+baseline = (
+    (full_results["npm_score"] * full_results["kg_w"])
+    .groupby(full_results["product_code"])
+    .sum()
+    / full_results.groupby(["product_code"])["kg_w"].sum()
+).reset_index(name="share")
+
+target = (
+    (full_results["new_npm"] * full_results["kg_w_new"])
+    .groupby(full_results["product_code"])
+    .sum()
+    / full_results.groupby(["product_code"])["kg_w_new"].sum()
+).reset_index(name="share")
+
+plt_df = pd.concat([baseline.assign(when="baseline"), target.assign(when="target")])
+# %%
+
+plt_df_sub = plt_df.sample(5000)
+# %%
+
+npm_1_125_5 = plot_density(plt_df_sub, full_results)
+webdr = google_chrome_driver_setup()
+save_altair(npm_1_125_5, "scenarios/ed/workshop/npm_1_125_5", driver=webdr)
+
+# %%
+plot_density(plt_df_sub, full_results)
+# %%

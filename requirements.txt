@@ -12,3 +12,4 @@ pyarrow
 dask
 statsmodels
 plotnine
+nesta_ds_utils[s3] @ git+https://github.com/nestauk/nesta_ds_utils.git
