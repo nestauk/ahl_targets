@@ -23,3 +23,23 @@ def energy_density_full() -> pd.DataFrame:
             "ahl-private-data", "in_home/data_outputs/targets_annex/ed_full.csv"
         ),
     )
+
+
+def npm_agg() -> pd.DataFrame:
+    """ """
+
+    return pd.read_csv(
+        load_with_encoding(
+            "ahl-private-data", "in_home/data_outputs/targets_annex/npm_agg.csv"
+        ),
+        encoding="ISO-8859-1",
+    )
+
+
+def coefficients_df() -> pd.DataFrame:
+    return pd.read_csv(
+        load_with_encoding(
+            "ahl-private-data", "in_home/data_outputs/targets_annex/coefficients.csv"
+        ),
+        encoding="ISO-8859-1",
+    )
