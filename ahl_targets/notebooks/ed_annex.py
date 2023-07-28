@@ -16,10 +16,15 @@ from ahl_targets import PROJECT_DIR
 import pandas as pd
 from ahl_targets.utils import simulation_utils as su
 import matplotlib.pyplot as plt
+import os
 
 
 # In[92]:
+path = PROJECT_DIR / "outputs/reports/chart_csv"
 
+# check whether directory already exists
+if not os.path.exists(path):
+    os.mkdir(path)
 
 pd.set_option("display.max_columns", None)
 
