@@ -124,3 +124,4 @@ target/
 
 # NPM
 node_modules/
+.Rproj.user
