@@ -64,3 +64,17 @@ npm_low_sales_change_values = [
     20,
 ]  # percentage shift in sales
 npm_cutoff = 4  # cut off for high NPM
+
+
+product_share_reform_values_low = [
+    1
+]  # percentage of HFSS products that are reformulated to become non-HFSS
+product_share_reform_values_medium = [
+    0
+]  # percentage of HFSS products that are reformulated to become non-HFSS
+product_share_reform_values_high = [
+    0
+]  # percentage of HFSS products that are reformulated to become non-HFSS
+hfss_high_sales_change_values = [10, 15]  # percentage shift in sales
+hfss_low_sales_change_values = [2.5, 5]  # percentage shift in sales
+hfss_cutoff = [10, 15, 20]

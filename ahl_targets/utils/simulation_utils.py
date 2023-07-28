@@ -254,3 +254,12 @@ def apply_reduction_npm(random_sample, npm_reduction):
     )
 
     return modified_column
+
+
+def apply_reduction_hfss(random_sample):
+    # Modify the values of the column
+    modified_column = np.where(
+        random_sample["indicator_reform"] == 1, 3, random_sample["npm_score"]
+    )
+
+    return modified_column
