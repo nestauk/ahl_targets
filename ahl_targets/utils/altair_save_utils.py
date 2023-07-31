@@ -3,6 +3,7 @@ from altair_saver import save
 from altair import Chart
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service as ChromeService
 import os
 from ahl_targets import PROJECT_DIR
 
@@ -16,7 +17,12 @@ os.makedirs(f"{FIG_PATH}/svg", exist_ok=True)
 
 def google_chrome_driver_setup():
     # Set up the driver to save figures as png
-    driver = webdriver.Chrome(ChromeDriverManager().install())
+    # driver = webdriver.Chrome(ChromeDriverManager().install())
+    # driver = webdriver.Chrome(ChromeDriverManager(version='114.0.5735.90').install())
+    driver = webdriver.Chrome(
+        service=ChromeService(ChromeDriverManager(version="114.0.5735.90").install())
+    )
+
     return driver
 
 
