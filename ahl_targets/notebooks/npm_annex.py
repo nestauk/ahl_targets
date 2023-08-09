@@ -41,10 +41,6 @@ results_df = get_sim_data.npm_agg()
 store_weight_npm = su.weighted_npm(store_data)
 store_weight_npm["prod_weight_g"] = store_weight_npm.pipe(su.prod_weight_g)
 
-
-# In[18]:
-
-
 # average across all iterations
 avg = (
     results_df.groupby(
@@ -73,8 +69,34 @@ avg = (
     .reset_index()
 )
 
-
-# In[19]:
+# Create df of average npm by store
+avg_retailer = (
+    (store_weight_npm["kg_w"] * store_weight_npm["npm_score"])
+    .groupby(store_weight_npm["store_cat"])
+    .sum()
+    / store_weight_npm["kg_w"].groupby(store_weight_npm["store_cat"]).sum()
+).reset_index(name="npm")
+# Add in row manually for where store == 'Target' and npm == avg['mean_npm_kg_new'] where npm_reduction == 3, sales_change_low == 5 and sales_change_high == 10
+avg_retailer = pd.concat(
+    [
+        avg_retailer,
+        pd.DataFrame(
+            {
+                "store_cat": "Target",
+                "npm": [
+                    avg[
+                        (avg["npm_reduction"] == 3)
+                        & (avg["sales_change_low"] == 5)
+                        & (avg["sales_change_high"] == 10)
+                    ]["mean_npm_kg_new"].values[0]
+                ],
+            }
+        ),
+    ],
+    ignore_index=True,
+)
+# Save as csv (for use in chart Y)
+avg_retailer.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartY.csv", index=False)
 
 
 # Generate before-after variables
@@ -104,6 +126,90 @@ baseline_prod = (
 ).reset_index(name="npm_w")
 
 baseline_prod.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartC.csv")
+
+
+# Data for chart C
+baseline_prod["npm_rounded"] = baseline_prod["npm_w"].round(0)
+# Percent of products with each NPM score
+npm_share = (
+    (baseline_prod["npm_rounded"].value_counts(normalize=True) * 100)
+    .reset_index()
+    .rename(columns={"index": "npm", "npm_rounded": "Percent Share"})
+)
+
+alt.data_transformers.disable_max_rows()
+
+
+# TEMP
+def density_plot(plt_df_sub):
+    chart = (
+        alt.Chart(plt_df_sub)
+        .transform_density(
+            "npm_w", as_=["size", "density"], groupby=["when"], bandwidth=1
+        )
+        .mark_line()
+        .encode(
+            x=alt.X(
+                "size:Q",
+                axis=alt.Axis(
+                    title="Sales weighted average NPM score",
+                ),
+            ),
+            y=alt.Y("density:Q", axis=alt.Axis(title="Weighted sales (%)", format="%")),
+            color=alt.Color("when:N", legend=alt.Legend(title="")),
+        )
+    )
+    return configure_plots(
+        chart,
+        "",
+        "",
+        16,
+        14,
+        14,
+    )
+
+
+# Save plot
+webdr = google_chrome_driver_setup()
+save_altair(
+    density_plot(baseline_prod),
+    "annex/npm_share_sales",
+    driver=webdr,
+)
+
+
+# Save as csv (for use in chart C)
+npm_share.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartC2_v2.csv", index=False)
+
+
+# Plot percent share as a line chart in altair (where the line is smoothed)
+npm_share_chart = (
+    alt.Chart(npm_share)
+    .mark_line()
+    .encode(
+        x=alt.X("npm:Q", title="Sales weighted average NPM score"),
+        y=alt.Y("Percent Share:Q", title="Weighted sales (%)"),
+    )
+    .properties(width=400, height=300)
+    .interactive()
+)
+npm_share_chart_conf = configure_plots(
+    npm_share_chart,
+    "",
+    "",
+    16,
+    14,
+    14,
+)
+
+# generate summary chart
+webdr = google_chrome_driver_setup()
+
+save_altair(
+    npm_share_chart_conf,
+    "annex/npm_share_sales",
+    driver=webdr,
+)
 
 
 # In[23]:

@@ -151,9 +151,6 @@ store_weight = su.weighted_ed(store_data)
 store_weight["prod_weight_g"] = store_weight.pipe(su.prod_weight_g)
 
 
-# In[86]:
-
-
 # generate average df over all iterations
 
 avg = (
@@ -183,8 +180,32 @@ avg = (
     .reset_index()
 )
 
-
-# In[98]:
+# Create df of average ed by store
+avg_retailer = (
+    (store_weight["kg_w"] * store_weight["ed"]).groupby(store_weight["store_cat"]).sum()
+    / store_weight["kg_w"].groupby(store_weight["store_cat"]).sum()
+).reset_index(name="ed")
+# Add in row manually for where store == 'Target' and ed == avg['mean_ed_kg_new'] where ed_reduction == 10, sales_change_low == 5 and sales_change_high == 15
+avg_retailer = pd.concat(
+    [
+        avg_retailer,
+        pd.DataFrame(
+            {
+                "store_cat": ["Target"],
+                "ed": [
+                    avg[
+                        (avg["ed_reduction"] == 10)
+                        & (avg["sales_change_low"] == 5)
+                        & (avg["sales_change_high"] == 15)
+                    ]["mean_ed_kg_new"].values[0]
+                ],
+            }
+        ),
+    ],
+    ignore_index=True,
+)
+# Save to csv (for use in chartX)
+avg_retailer.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartX.csv", index=False)
 
 
 # Generate before-after variables

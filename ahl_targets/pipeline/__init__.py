@@ -37,7 +37,8 @@ ed_reduction_values = [
     10,
     12.5,
 ]  # percentage reduction in energy density e.g. 1 indicates a 1% reduction in energy density
-ed_high_sales_change_values = [12.5]  # percentage shift in sales
+# ed_high_sales_change_values = [12.5]  # percentage shift in sales
+ed_high_sales_change_values = [15]  # percentage shift in sales
 ed_low_sales_change_values = [
     0,
     2.5,
@@ -52,7 +53,8 @@ ed_low_sales_change_values = [
 ed_cutoff = 400  # cut off for high energy density
 
 npm_reduction_values = [2, 3, 4, 5]  # reduction in NPM
-npm_high_sales_change_values = [12.5]  # percentage shift in sales
+# npm_high_sales_change_values = [12.5]  # percentage shift in sales
+npm_high_sales_change_values = [10]  # percentage shift in sales
 npm_low_sales_change_values = [
     2.5,
     5,

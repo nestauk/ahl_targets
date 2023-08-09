@@ -1,26 +1,12 @@
 # %%
 from ahl_targets.utils.plotting import configure_plots
 from ahl_targets import PROJECT_DIR
-
-# %%
 from ahl_targets.getters import get_data
-
-# %%
-
 from ahl_targets.pipeline import stores_transformation as stores
-
-# %%
-
 from ahl_targets.pipeline import model_data
-
-# %%
-
 from ahl_targets.pipeline import hfss
-
-# %%
 from ahl_targets.pipeline import product_transformation as product
 
-# %%
 # from ahl_targets.analysis import product_category_stats as cat_stats
 # %%
 
@@ -176,6 +162,34 @@ def plot_shares_bar(
     )
 
 
+def plot_shares_bar_hfss(
+    metric_df: pd.DataFrame,
+    category_col: str,
+    value_col: str,
+    title: str,
+    x_title: str,
+    y_title: str,
+):
+    """Plot bar chart of shares of selected metric by category."""
+    chart = (
+        alt.Chart(metric_df)
+        .mark_bar()
+        .encode(
+            x=alt.X(value_col, title=x_title),
+            y=alt.Y(category_col, sort="-x", title=y_title),
+            color=category_col,
+        )
+    )
+    return configure_plots(
+        chart,
+        title,
+        "",
+        16,
+        14,
+        14,
+    )
+
+
 def plot_npm_component(
     prod_100_npm: pd.DataFrame,
 ):
@@ -299,6 +313,16 @@ base_stats = prod_purch_df[
 base_stats["weight_kcal"] = base_stats["Gross Up Weight"] * base_stats["Energy KCal"]
 base_stats["weight_vol"] = base_stats["Gross Up Weight"] * base_stats["volume_up"]
 
+# HFSS volume weighted shares
+hfss_shares_volume = (
+    base_stats.groupby(["in_scope"])["weight_vol"].sum()
+    / base_stats["weight_vol"].sum()
+)
+# Save as csv (for chart D)
+hfss_shares_volume.reset_index().to_csv(
+    PROJECT_DIR / f"outputs/data/hfss_shares_volume.csv", index=False
+)
+
 store_baseline = baseline_category_report(
     base_stats,
     "store_baseline",
@@ -314,7 +338,43 @@ manuf_baseline = baseline_category_report(
     "weight_vol",
 )
 
-# %%
+# Subset by chosen stores
+hff_shares_vol_weighted_subset = stores.store_subset(store_baseline)[
+    ["store_cat", "hfss_averageweight_vol"]
+].copy()
+hff_shares_vol_weighted_subset.columns = ["stores", "hfss shares (volume weighted)"]
+# Manually add a row for total (see above df for calculation)
+hff_shares_vol_weighted_subset = pd.concat(
+    [
+        hff_shares_vol_weighted_subset,
+        pd.DataFrame(
+            {
+                "stores": ["Overall average"],
+                "hfss shares (volume weighted)": [hfss_shares_volume[1]],
+            }
+        ),
+    ],
+    ignore_index=True,
+)
+# Save as csv (for chart E3)
+hff_shares_vol_weighted_subset.to_csv(
+    PROJECT_DIR / f"outputs/data/hfss_shares_volume_weighted_subset.csv", index=False
+)
+# Plot as bar chart
+webdr = google_chrome_driver_setup()
+save_altair(
+    plot_shares_bar_hfss(
+        hff_shares_vol_weighted_subset,
+        "stores",
+        "hfss shares (volume weighted)",
+        "Share of volume HFSS by store",
+        "Share of volume",
+        "Store",
+    ),
+    "hfss_shares_volume_weighted_subset",
+    driver=webdr,
+)
+
 
 # 100-200 kcal/100g: an avocado (ED of 150 kcal/100g, NPM is X, not HFSS)
 # Kcal per 100g, NPM score, HFSS (Y/N)
@@ -451,6 +511,8 @@ prod_100_npm = (
         value_name="per 100g",
     )
 )
+# Saving CSV file (for chartB)
+prod_100_npm.to_csv(PROJECT_DIR / f"outputs/data/npm_components_mean.csv", index=False)
 
 # %%
 
