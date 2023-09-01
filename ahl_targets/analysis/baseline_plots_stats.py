@@ -332,18 +332,35 @@ hfss_shares_none = (
 )
 
 # Store subset
-store_subset = stores.store_subset(base_stats)
+store_subset_shares = stores.store_subset(base_stats)
 
 hfss_shares_volume = (
-    store_subset.groupby(["in_scope"])["weight_vol"].sum()
-    / store_subset["weight_vol"].sum()
+    store_subset_shares.groupby(["in_scope"])["weight_vol"].sum()
+    / store_subset_shares["weight_vol"].sum()
 )
 # HFSS product weighted shares
 hfss_shares_prod = (
-    store_subset.groupby(["in_scope"])["weight_prod"].sum()
-    / store_subset["weight_prod"].sum()
+    store_subset_shares.groupby(["in_scope"])["weight_prod"].sum()
+    / store_subset_shares["weight_prod"].sum()
 )
 
+# Create new column high NPM >= 4 (1 else 0)
+base_stats["high_npm"] = base_stats["npm_score"].apply(lambda x: 1 if x >= 4 else 0)
+# High NPM volume weighted shares
+high_npm_shares_volume = (
+    base_stats.groupby(["high_npm"])["weight_vol"].sum()
+    / base_stats["weight_vol"].sum()
+)
+# High NPM product weighted shares
+high_npm_shares_prod = (
+    base_stats.groupby(["high_npm"])["weight_prod"].sum()
+    / base_stats["weight_prod"].sum()
+)
+# High NPM kcal weighted shares
+high_npm_shares_kcal = (
+    base_stats.groupby(["high_npm"])["weight_kcal"].sum()
+    / base_stats["weight_kcal"].sum()
+)
 
 # Save as csv (for chart D)
 hfss_shares_volume.reset_index().to_csv(
