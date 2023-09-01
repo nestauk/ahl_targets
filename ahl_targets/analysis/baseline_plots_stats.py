@@ -312,12 +312,39 @@ base_stats = prod_purch_df[
 
 base_stats["weight_kcal"] = base_stats["Gross Up Weight"] * base_stats["Energy KCal"]
 base_stats["weight_vol"] = base_stats["Gross Up Weight"] * base_stats["volume_up"]
+base_stats["weight_prod"] = base_stats["Gross Up Weight"]
+base_stats["weight_none"] = 1
 
 # HFSS volume weighted shares
 hfss_shares_volume = (
     base_stats.groupby(["in_scope"])["weight_vol"].sum()
     / base_stats["weight_vol"].sum()
 )
+# HFSS product weighted shares
+hfss_shares_prod = (
+    base_stats.groupby(["in_scope"])["weight_prod"].sum()
+    / base_stats["weight_prod"].sum()
+)
+
+hfss_shares_none = (
+    base_stats.groupby(["in_scope"])["weight_none"].sum()
+    / base_stats["weight_none"].sum()
+)
+
+# Store subset
+store_subset = stores.store_subset(base_stats)
+
+hfss_shares_volume = (
+    store_subset.groupby(["in_scope"])["weight_vol"].sum()
+    / store_subset["weight_vol"].sum()
+)
+# HFSS product weighted shares
+hfss_shares_prod = (
+    store_subset.groupby(["in_scope"])["weight_prod"].sum()
+    / store_subset["weight_prod"].sum()
+)
+
+
 # Save as csv (for chart D)
 hfss_shares_volume.reset_index().to_csv(
     PROJECT_DIR / f"outputs/data/hfss_shares_volume.csv", index=False
