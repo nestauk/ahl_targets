@@ -518,9 +518,11 @@ prod_data_sub_ed.to_csv(
 
 # %%
 
+prod_purch_df_sub = stores.store_subset(prod_purch_df).copy()
+
 # Products grouped by NPM score to get avg: sugar, salt...ect per 100g
 prod_per_100 = (
-    hfss.food_per_100g(prod_purch_df)
+    hfss.food_per_100g(prod_purch_df_sub)
     .groupby(["product_code"])[
         [
             "kcal_per_100g",
