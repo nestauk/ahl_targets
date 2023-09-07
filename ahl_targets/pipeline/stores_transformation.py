@@ -34,3 +34,29 @@ def custom_taxonomy(store_levels):
         store_levels["itemisation_level_3"],
     )
     return store_levels
+
+
+def chosen_stores(store_levels):
+    """Returns subsetted store levels (based on AHL requirements)
+
+    Args:
+        store_levels (pd.DataFrame): combined dataset of store codes and taxonomy
+    """
+
+    keep_stores = [
+        "Total Tesco",
+        "Total Sainsbury's",
+        "Total Asda",
+        "Total Morrisons",
+        "Aldi",
+        "Lidl",
+        "Total Waitrose",
+        "The Co-Operative",
+        "Total Marks & Spencer",
+        "Total Iceland",
+        "Ocado Internet",
+    ]
+    # Return 1 if store is in keep_stores, else 0
+    return np.where(
+        store_levels["store_cat"].isin(keep_stores), "Chosen store", "Not chosen store"
+    )
