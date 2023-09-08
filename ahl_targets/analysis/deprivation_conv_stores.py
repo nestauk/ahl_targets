@@ -150,20 +150,6 @@ def get_store_purchases(hh_purchases_total, stores):
     income_store_purch_cs,
 ) = get_store_purchases(hh_purchases_total_cs, stores_cs)
 
-# # Calculate weighted purchases
-# hh_purchases_total['Weighted Chosen'] = hh_purchases_total['Chosen store'] * hh_purchases_total['weight']
-# hh_purchases_total['Weighted Not Chosen'] = hh_purchases_total['Not chosen store'] * hh_purchases_total['weight']
-
-# # get the percent of store purchases grouped by imd decile
-# imd_store_purch = hh_purchases_total[["Weighted Chosen", "Weighted Not Chosen", "Index of Multiple Deprivation (IMD) Decile"]].dropna(subset='Index of Multiple Deprivation (IMD) Decile').fillna(0).groupby('Index of Multiple Deprivation (IMD) Decile').sum()
-# # Get percent of store purchases by imd decile
-# imd_store_purch_perc = imd_store_purch.div(imd_store_purch.sum(axis=1), axis=0) * 100
-
-# # get the percent of store purchases grouped by income
-# income_store_purch = hh_purchases_total[["Weighted Chosen", "Weighted Not Chosen", "Household Income"]].fillna(0).groupby('Household Income').sum()
-# # Get percent of store purchases by income
-# income_store_purch_perc = income_store_purch.div(income_store_purch.sum(axis=1), axis=0) * 100
-
 # plot income_store_purch_perc as a heatmap
 plt.figure(figsize=(10, 5))
 plt.title("Percent of store purchases by income - level 2 stores")
