@@ -113,10 +113,6 @@ result = (new_columns - baseline_columns) / baseline_columns.abs() * 100
 df = pd.concat([avg, result.add_suffix("_diff_percentage")], axis=1)
 df["kcal_diff"] = df["kcal_pp_new"] - df["kcal_pp_baseline"]
 
-
-# In[20]:
-
-
 # weighted npm average by product
 baseline_prod = (
     (store_weight_npm["npm_score"] * store_weight_npm["kg_w"])
@@ -140,12 +136,11 @@ npm_share = (
 alt.data_transformers.disable_max_rows()
 
 
-# TEMP
-def density_plot(plt_df_sub):
+def npm_density_plot(plt_df_sub):
     chart = (
         alt.Chart(plt_df_sub)
         .transform_density(
-            "npm_w", as_=["size", "density"], groupby=["when"], bandwidth=1
+            "npm_w", as_=["size", "density"], groupby=["when"], bandwidth=2
         )
         .mark_line()
         .encode(
@@ -169,10 +164,14 @@ def density_plot(plt_df_sub):
     )
 
 
+# Updated version of Chart C with new NPM data
+npm_prod_df = pd.read_csv(PROJECT_DIR / "outputs/data/chartc_updated_npm.csv")
+npm_density_plot(npm_prod_df)
+
 # Save plot
 webdr = google_chrome_driver_setup()
 save_altair(
-    density_plot(baseline_prod),
+    npm_density_plot(baseline_prod),
     "annex/npm_share_sales",
     driver=webdr,
 )
