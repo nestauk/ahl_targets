@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
+# %%
 
-# In[52]:
-
-
+# %%
 from ahl_targets.getters import simulated_outcomes as get_sim_data
 from ahl_targets.getters import get_data
 from ahl_targets.utils.plotting import configure_plots
@@ -19,7 +18,7 @@ import matplotlib.pyplot as plt
 import os
 
 
-# In[53]:
+# %%
 
 
 pd.set_option("display.max_columns", None)
@@ -30,7 +29,7 @@ if not os.path.exists(path):
     os.mkdir(path)
 
 
-# In[54]:
+# %%
 
 
 # read data
@@ -211,7 +210,7 @@ save_altair(
 )
 
 
-# In[23]:
+# %%
 
 
 # weighted npm average by product and store
@@ -229,7 +228,7 @@ baseline_prod_store = baseline_prod_store.reset_index(name="share")
 baseline_prod_store.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartE2.csv")
 
 
-# In[65]:
+# %%
 
 
 # functions to create weighted standard deviation (chatgpt helped here)
@@ -283,7 +282,7 @@ result = (
 )
 
 
-# In[66]:
+# %%
 
 
 def weighted_stddev(data, weights):
@@ -305,7 +304,7 @@ def weighted_stddev(data, weights):
     return weighted_stddev, weighted_mean
 
 
-# In[67]:
+# %%
 
 
 # dictionary with overall mean and standard deviation
@@ -339,7 +338,7 @@ store_letters = dict(zip(keys, values))
 result_sort["store_letter"] = result_sort["store_cat"].map(store_letters)
 
 
-# In[68]:
+# %%
 
 
 # append total to store df
@@ -350,7 +349,7 @@ bar_df_tot = bar_df_tot.sort_values(by="mean", ascending=True).copy()
 bar_df_tot.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartE2_bar.csv")
 
 
-# In[57]:
+# %%
 
 
 # simulation file with spend
@@ -365,7 +364,7 @@ results_df[
 ].to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartG2.csv", index=False)
 
 
-# In[59]:
+# %%
 
 
 # simulation file with kcal
@@ -380,4 +379,4 @@ results_df[
 ].to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartF2.csv", index=False)
 
 
-# In[ ]:
+# %%
