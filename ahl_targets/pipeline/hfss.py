@@ -252,7 +252,7 @@ def calculate_npm_score(df, a_points, fiber_col, protein_col, fvn_col):
     fvn_col_values = df[fvn_col].values
 
     total = np.where(
-        (a_points_sum >= 11) & (fvn_col_values >= 5),
+        (a_points_sum >= 11) & (fvn_col_values >= 5) | (a_points_sum < 11),
         a_points_sum - df[fiber_col] - df[protein_col] - fvn_col_values,
         a_points_sum - df[fiber_col] - fvn_col_values,
     )
@@ -262,6 +262,7 @@ def calculate_npm_score(df, a_points, fiber_col, protein_col, fvn_col):
 
 def scoring_df(prod_meta, pur_rec, gravity, nut_rec, fvn):
     """Returns df with columns needed for scoring"""
+    logging.info("running scoring_df")
     out = assign_scores(
         all_prod(
             drink_per_100g(

@@ -5,6 +5,7 @@ from ahl_targets import PROJECT_DIR
 from ahl_targets.utils.io import load_with_encoding
 from ahl_targets.utils.create_tables import product_table
 import os.path
+import dask.dataframe as dd
 
 
 def purchase_records() -> pd.DataFrame:
@@ -343,7 +344,11 @@ def purchase_records_volume() -> pd.DataFrame:
         df (pd.DataFrame): pruchase records with additional columns for volumes
     """
 
-    return pd.read_csv(PROJECT_DIR / "inputs/processed/pur_rec_volume.csv").iloc[:, 1:]
+    return (
+        pd.read_csv(PROJECT_DIR / "inputs/processed/pur_rec_volume.csv")
+        .iloc[:, 1:]
+        .query("Quantity > 0")
+    )
 
 
 def purchase_records_updated() -> pd.DataFrame:
@@ -420,7 +425,7 @@ def get_imputed_bmi() -> pd.DataFrame:
     """Reads the file containing the imputed BMI values
     Args: None
     Returns: pd.DataFrame: file with imputed bmi values"""
-    return pd.read_csv(PROJECT_DIR / "outputs/processed/imputed_bmi.csv")
+    return pd.read_csv(PROJECT_DIR / "inputs/processed/imputed_bmi.csv")
 
 
 def product_type() -> dict:
@@ -473,3 +478,15 @@ def get_fvn() -> pd.DataFrame:
         return pd.read_csv(
             load_with_encoding("ahl-private-data", "in_home/latest_data/fvn_points.csv")
         )
+
+
+def get_npm() -> pd.DataFrame:
+    return pd.read_csv(PROJECT_DIR / "inputs/processed/npm.csv")
+
+
+def model_data():
+    return dd.read_csv(PROJECT_DIR / "inputs/processed/target_model_data.csv")
+
+
+def model_data_full():
+    return dd.read_csv(PROJECT_DIR / "inputs/processed/target_model_data_full.csv")

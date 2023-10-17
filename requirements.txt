@@ -3,8 +3,13 @@ boto3
 fsspec
 altair_saver
 altair
-webdriver_manager
+webdriver_manager==3.8.5
 seaborn
 selenium<4.3.0
 matplotlib
 toolz
+pyarrow
+dask
+statsmodels
+plotnine
+nesta_ds_utils[s3] @ git+https://github.com/nestauk/nesta_ds_utils.git
