@@ -77,7 +77,6 @@ def food_per_100g(prod_kg_nut):
     prod_kg_nut["sug_per_100g"] = nut_per_100g_foods(prod_kg_nut, "Sugar KG")
     prod_kg_nut["sod_per_100g"] = nut_per_100g_foods(prod_kg_nut, "Sodium KG")
     prod_kg_nut["fibre_per_100g"] = nut_per_100g_foods(prod_kg_nut, "Fibre KG Flag")
-    prod_kg_nut["sug_per_100g"] = nut_per_100g_foods(prod_kg_nut, "Sugar KG")
 
     # remove implausible values
     prod_kg_nut = prod_kg_nut[prod_kg_nut["kcal_per_100g"] < 900].copy()
@@ -121,7 +120,6 @@ def drink_per_100g(prod_lt_nut):
     prod_lt_nut["sug_per_100g"] = nut_per_100g_drinks(prod_lt_nut, "Sugar KG")
     prod_lt_nut["sod_per_100g"] = nut_per_100g_drinks(prod_lt_nut, "Sodium KG")
     prod_lt_nut["fibre_per_100g"] = nut_per_100g_drinks(prod_lt_nut, "Fibre KG Flag")
-    prod_lt_nut["sug_per_100g"] = nut_per_100g_drinks(prod_lt_nut, "Sugar KG")
 
     return prod_lt_nut
 
@@ -294,7 +292,7 @@ def npm_score(
     prod_meta, pur_rec, gravity, nut_rec, fvn, a_points, fiber_col, protein_col, fvn_col
 ):
     """Returns a df of purchases and NPM scores"""
-    logging.info("This function takes about 7 minutes to run")
+    logging.info("The function npm_score takes about 7 minutes to run")
     tbl = scoring_df(prod_meta, pur_rec, gravity, nut_rec, fvn)
     tbl["npm_score"] = calculate_npm_score(
         tbl, a_points, fiber_col, protein_col, fvn_col
