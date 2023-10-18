@@ -12,6 +12,7 @@ if __name__ == "__main__":
     pur_rec_vol = get_data.purchase_records_volume()
     prod_table = get_data.product_metadata()
     npm = get_data.get_npm()
+    nut = get_data.nutrition()
 
     logging.info("This script takes about 20 minutes to run")
 
@@ -67,9 +68,15 @@ if __name__ == "__main__":
     # remove implausible values
     store_data = store_data[store_data["ed"] < 900].copy()
 
+    out = store_data.merge(
+        nut[["Purchase Number", "Purchase Period", "Energy KCal"]],
+        left_on=["PurchaseId", "Period"],
+        right_on=["Purchase Number", "Purchase Period"],
+    )
+
     upload_obj(
-        store_data,
+        out,
         BUCKET_NAME,
-        "in_home/processed/targets/model_data.csv",
-        kwargs_writing={"index": False},
+        "in_home/processed/targets/model_data.parquet",
+        kwargs_writing={"compression": "zstd", "engine": "pyarrow"},
     )

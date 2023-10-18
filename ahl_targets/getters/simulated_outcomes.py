@@ -40,7 +40,7 @@ def npm_agg() -> pd.DataFrame:
 def coefficients_df() -> pd.DataFrame:
     return pd.read_csv(
         load_with_encoding(
-            "ahl-private-data", "in_home/data_outputs/targets_annex/coefficients.csv"
+            "ahl-private-data", "in_home/processed/targets/coefficients.csv"
         ),
         encoding="ISO-8859-1",
     )
