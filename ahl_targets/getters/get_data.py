@@ -1,7 +1,8 @@
 import pandas as pd
 from toolz import pipe
 import re
-from ahl_targets import PROJECT_DIR
+from ahl_targets import PROJECT_DIR, BUCKET_NAME
+from nesta_ds_utils.loading_saving.S3 import download_obj
 from ahl_targets.utils.io import load_with_encoding
 from ahl_targets.utils.create_tables import product_table
 import os.path
@@ -481,12 +482,30 @@ def get_fvn() -> pd.DataFrame:
 
 
 def get_npm() -> pd.DataFrame:
-    return pd.read_csv(PROJECT_DIR / "inputs/processed/npm.csv")
+    """
+      Reads the npm_scores file.
+    Args:
+        None
+    Returns:
+        pd.DataFrame: npm_scores dataframe
+    """
+    return download_obj(
+        BUCKET_NAME,
+        "in_home/processed/npm_with_nut.csv",
+        download_as="dataframe",
+    )
 
 
 def model_data():
-    return dd.read_csv(PROJECT_DIR / "inputs/processed/target_model_data.csv")
-
-
-def model_data_full():
-    return dd.read_csv(PROJECT_DIR / "inputs/processed/target_model_data_full.csv")
+    """
+      Reads the npm_scores file.
+    Args:
+        None
+    Returns:
+        pd.DataFrame: npm_scores dataframe
+    """
+    return download_obj(
+        BUCKET_NAME,
+        "in_home/processed/targets/model_data.csv",
+        download_as="dataframe",
+    )
