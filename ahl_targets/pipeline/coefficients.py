@@ -6,7 +6,7 @@ from ahl_targets import BUCKET_NAME
 
 
 if __name__ == "__main__":
-    store_data = get_data.model_data().compute()
+    store_data = get_data.model_data()
 
     coefficients = []
 
@@ -36,6 +36,6 @@ if __name__ == "__main__":
     upload_obj(
         coefficients_df,
         BUCKET_NAME,
-        "in_home/data_outputs/targets_annex/coefficients.csv",
+        "in_home/processed/targets/coefficients.csv",
         kwargs_writing={"index": False},
     )

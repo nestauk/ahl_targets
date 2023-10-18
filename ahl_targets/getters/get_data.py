@@ -7,6 +7,7 @@ from ahl_targets.utils.io import load_with_encoding
 from ahl_targets.utils.create_tables import product_table
 import os.path
 import dask.dataframe as dd
+from boto3.s3.transfer import TransferConfig
 
 
 def purchase_records() -> pd.DataFrame:
@@ -506,6 +507,7 @@ def model_data():
     """
     return download_obj(
         BUCKET_NAME,
-        "in_home/processed/targets/model_data.csv",
+        "in_home/processed/targets/model_data.parquet",
         download_as="dataframe",
+        kwargs_boto={"Config": TransferConfig(io_chunksize=20947892)},
     )

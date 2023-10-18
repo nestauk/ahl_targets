@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-# %%
-
-# %%
 from ahl_targets.getters import simulated_outcomes as get_sim_data
 from ahl_targets.getters import get_data
 from ahl_targets.utils.plotting import configure_plots
@@ -17,11 +12,6 @@ from ahl_targets.utils import simulation_utils as su
 import matplotlib.pyplot as plt
 import os
 
-
-# %%
-
-
-pd.set_option("display.max_columns", None)
 path = PROJECT_DIR / "outputs/reports/chart_csv"
 
 # check whether directory already exists
@@ -29,11 +19,8 @@ if not os.path.exists(path):
     os.mkdir(path)
 
 
-# %%
-
-
 # read data
-store_data = get_data.model_data().compute()
+store_data = get_data.model_data()
 results_df = get_sim_data.npm_agg()
 
 # create aggregate data with weights
