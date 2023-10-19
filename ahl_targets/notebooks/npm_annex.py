@@ -1,5 +1,6 @@
 from ahl_targets.getters import simulated_outcomes as get_sim_data
 from ahl_targets.getters import get_data
+from ahl_targets.pipeline import product_transformation as pt
 from ahl_targets.utils.plotting import configure_plots
 from ahl_targets.utils.altair_save_utils import (
     google_chrome_driver_setup,
@@ -56,6 +57,62 @@ npm_data = get_data.get_npm()
 # create aggregate data with weights
 store_weight_npm = su.weighted_npm(store_data)
 store_weight_npm["prod_weight_g"] = store_weight_npm.pipe(su.prod_weight_g)
+
+
+# HFSS info
+store_data_hfss = pt.type(store_data)
+store_data_hfss = pt.in_scope(store_data_hfss)
+
+store_data_hfss["weight_kcal"] = (
+    store_data_hfss["Gross Up Weight"] * store_data_hfss["Energy KCal"]
+)
+store_data_hfss["weight_vol"] = (
+    store_data_hfss["Gross Up Weight"] * store_data_hfss["volume_up"]
+)
+store_data_hfss["weight_prod"] = store_data_hfss["Gross Up Weight"]
+store_data_hfss["weight_none"] = 1
+
+# HFSS volume weighted shares
+hfss_shares_volume = (
+    store_data_hfss.groupby(["in_scope"])["weight_vol"].sum()
+    / store_data_hfss["weight_vol"].sum()
+)
+# HFSS product weighted shares
+hfss_shares_prod = (
+    store_data_hfss.groupby(["in_scope"])["weight_prod"].sum()
+    / store_data_hfss["weight_prod"].sum()
+)
+
+hfss_shares_none = (
+    store_data_hfss.groupby(["in_scope"])["weight_none"].sum()
+    / store_data_hfss["weight_none"].sum()
+)
+
+hfss_shares_kcal = (
+    store_data_hfss.groupby(["in_scope"])["weight_kcal"].sum()
+    / store_data_hfss["weight_kcal"].sum()
+)
+
+# Create new column high NPM >= 4 (1 else 0)
+store_data_hfss["high_npm"] = store_data_hfss["npm_score"].apply(
+    lambda x: 1 if x >= 4 else 0
+)
+
+hfss_high_volume = (
+    store_data_hfss.groupby(["high_npm"])["weight_vol"].sum()
+    / store_data_hfss["weight_vol"].sum()
+)
+
+hfss_high_prod = (
+    store_data_hfss.groupby(["high_npm"])["weight_prod"].sum()
+    / store_data_hfss["weight_prod"].sum()
+)
+
+hfss_high_kcal = (
+    store_data_hfss.groupby(["high_npm"])["weight_kcal"].sum()
+    / store_data_hfss["weight_kcal"].sum()
+)
+
 
 # average across all iterations
 avg = (
