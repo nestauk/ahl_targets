@@ -30,9 +30,7 @@ def npm_agg() -> pd.DataFrame:
     """ """
 
     return pd.read_csv(
-        load_with_encoding(
-            "ahl-private-data", "in_home/data_outputs/targets_annex/npm_agg.csv"
-        ),
+        load_with_encoding("ahl-private-data", "in_home/processed/targets/npm_agg.csv"),
         encoding="ISO-8859-1",
     )
 

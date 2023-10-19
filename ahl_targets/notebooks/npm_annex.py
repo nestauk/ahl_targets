@@ -19,9 +19,39 @@ if not os.path.exists(path):
     os.mkdir(path)
 
 
+def npm_density_plot(plt_df_sub):
+    chart = (
+        alt.Chart(plt_df_sub)
+        .transform_density(
+            "npm_w", as_=["size", "density"], groupby=["when"], bandwidth=2
+        )
+        .mark_line()
+        .encode(
+            x=alt.X(
+                "size:Q",
+                axis=alt.Axis(
+                    title="Sales weighted average NPM score",
+                ),
+            ),
+            y=alt.Y("density:Q", axis=alt.Axis(title="Weighted sales (%)", format="%")),
+            color=alt.Color("when:N", legend=alt.Legend(title="")),
+        )
+    )
+    return configure_plots(
+        chart,
+        "",
+        "",
+        16,
+        14,
+        14,
+    )
+
+
 # read data
 store_data = get_data.model_data()
 results_df = get_sim_data.npm_agg()
+npm_data = get_data.get_npm()
+
 
 # create aggregate data with weights
 store_weight_npm = su.weighted_npm(store_data)
@@ -82,7 +112,9 @@ avg_retailer = pd.concat(
     ignore_index=True,
 )
 # Save as csv (for use in chart Y)
-avg_retailer.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartY.csv", index=False)
+avg_retailer.to_csv(
+    PROJECT_DIR / "outputs/reports/chart_csv/chartY_updated.csv", index=False
+)
 
 
 # Generate before-after variables
@@ -107,8 +139,82 @@ baseline_prod = (
     / store_weight_npm.groupby(["product_code"])["kg_w"].sum()
 ).reset_index(name="npm_w")
 
-baseline_prod.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartC.csv")
+alt.data_transformers.disable_max_rows()
+### Creating data for chart C (with updated NPM data) ###
+chart_c_df = baseline_prod.copy()
+chart_c_df["npm_w"] = ((-2) * chart_c_df["npm_w"]) + 70
+npm_density_plot(chart_c_df)
+chart_c_df.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartC_updated.csv")
 
+chart_c_df["npm_rounded"] = chart_c_df["npm_w"].round(0)
+# Percent of products with each NPM score
+npm_share = (
+    (chart_c_df["npm_rounded"].value_counts(normalize=True) * 100)
+    .reset_index()
+    .rename(columns={"index": "npm", "npm_rounded": "Percent Share"})
+)
+npm_share.to_csv(
+    PROJECT_DIR / "outputs/reports/chart_csv/chartC2_alternative_npm_share.csv",
+    index=False,
+)
+
+
+### Chart B - nutrient distribution ###
+npm_store_df = npm_data.merge(
+    store_data[["PurchaseId", "Period", "store_cat", "is_food", "itemisation_level_3"]],
+    left_on=["purchase_id", "period"],
+    right_on=["PurchaseId", "Period"],
+    how="inner",
+).drop(columns=["PurchaseId", "Period"])
+
+# Products grouped by NPM score to get avg: sugar, salt...ect per 100g
+prod_per_100 = (
+    npm_store_df.groupby(["product_code"])[
+        [
+            "kcal_per_100g",
+            "sat_per_100g",
+            "prot_per_100g",
+            "sug_per_100g",
+            "sod_per_100g",
+            "fibre_per_100g",
+        ]
+    ]
+    .mean()
+    .reset_index()
+)
+prod_100_npm = prod_per_100.merge(
+    chart_c_df[["product_code", "npm_w"]],
+    left_on="product_code",
+    right_on="product_code",
+).drop(["product_code"], axis=1)
+
+prod_100_npm["npm_w"] = prod_100_npm["npm_w"].round(0)
+
+prod_100_npm.rename(
+    columns={
+        "npm_w": "npm_score",
+    },
+    inplace=True,
+)
+
+
+prod_100_npm = (
+    prod_100_npm.groupby(["npm_score"])
+    .mean()
+    .reset_index()
+    .melt(
+        id_vars=["npm_score"],
+        var_name="component",
+        value_name="per 100g",
+    )
+)
+# Saving CSV file (for chartB)
+prod_100_npm.to_csv(
+    PROJECT_DIR / f"outputs/reports/chart_csv/chartB_updated.csv", index=False
+)
+
+
+#### Previous code (for reference) ####
 
 # Data for chart C
 baseline_prod["npm_rounded"] = baseline_prod["npm_w"].round(0)
@@ -118,36 +224,6 @@ npm_share = (
     .reset_index()
     .rename(columns={"index": "npm", "npm_rounded": "Percent Share"})
 )
-
-alt.data_transformers.disable_max_rows()
-
-
-def npm_density_plot(plt_df_sub):
-    chart = (
-        alt.Chart(plt_df_sub)
-        .transform_density(
-            "npm_w", as_=["size", "density"], groupby=["when"], bandwidth=2
-        )
-        .mark_line()
-        .encode(
-            x=alt.X(
-                "size:Q",
-                axis=alt.Axis(
-                    title="Sales weighted average NPM score",
-                ),
-            ),
-            y=alt.Y("density:Q", axis=alt.Axis(title="Weighted sales (%)", format="%")),
-            color=alt.Color("when:N", legend=alt.Legend(title="")),
-        )
-    )
-    return configure_plots(
-        chart,
-        "",
-        "",
-        16,
-        14,
-        14,
-    )
 
 
 # Updated version of Chart C with new NPM data
@@ -161,7 +237,6 @@ save_altair(
     "annex/npm_share_sales",
     driver=webdr,
 )
-
 
 # Save as csv (for use in chart C)
 npm_share.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartC2_v2.csv", index=False)
