@@ -69,8 +69,7 @@ store_data_hfss["weight_kcal"] = (
 store_data_hfss["weight_vol"] = (
     store_data_hfss["Gross Up Weight"] * store_data_hfss["volume_up"]
 )
-store_data_hfss["weight_prod"] = store_data_hfss["Gross Up Weight"]
-store_data_hfss["weight_none"] = 1
+store_data_hfss["unweighted"] = store_data_hfss["Gross Up Weight"]
 
 # HFSS volume weighted shares
 hfss_shares_volume = (
@@ -78,20 +77,25 @@ hfss_shares_volume = (
     / store_data_hfss["weight_vol"].sum()
 )
 # HFSS product weighted shares
-hfss_shares_prod = (
-    store_data_hfss.groupby(["in_scope"])["weight_prod"].sum()
-    / store_data_hfss["weight_prod"].sum()
-)
-
-hfss_shares_none = (
-    store_data_hfss.groupby(["in_scope"])["weight_none"].sum()
-    / store_data_hfss["weight_none"].sum()
+hfss_shares_unweighted = (
+    store_data_hfss.groupby(["in_scope"])["unweighted"].sum()
+    / store_data_hfss["unweighted"].sum()
 )
 
 hfss_shares_kcal = (
     store_data_hfss.groupby(["in_scope"])["weight_kcal"].sum()
     / store_data_hfss["weight_kcal"].sum()
 )
+
+# Shares of unique products sold (sort by purchase date)
+unique_prods = store_data_hfss.sort_values(
+    by=["Purchase Date"], ascending=False
+).drop_duplicates(subset=["product_code"], keep="first")
+unique_prods_sold = (
+    unique_prods.groupby(["in_scope"])["product_code"].nunique()
+    / unique_prods["product_code"].nunique()
+)
+
 
 # Create new column high NPM >= 4 (1 else 0)
 store_data_hfss["high_npm"] = store_data_hfss["npm_score"].apply(
@@ -103,9 +107,9 @@ hfss_high_volume = (
     / store_data_hfss["weight_vol"].sum()
 )
 
-hfss_high_prod = (
-    store_data_hfss.groupby(["high_npm"])["weight_prod"].sum()
-    / store_data_hfss["weight_prod"].sum()
+hfss_high_unweighted = (
+    store_data_hfss.groupby(["high_npm"])["unweighted"].sum()
+    / store_data_hfss["unweighted"].sum()
 )
 
 hfss_high_kcal = (
