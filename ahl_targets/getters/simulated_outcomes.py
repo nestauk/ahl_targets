@@ -30,9 +30,7 @@ def npm_agg() -> pd.DataFrame:
     """ """
 
     return pd.read_csv(
-        load_with_encoding(
-            "ahl-private-data", "in_home/data_outputs/targets_annex/npm_agg.csv"
-        ),
+        load_with_encoding("ahl-private-data", "in_home/processed/targets/npm_agg.csv"),
         encoding="ISO-8859-1",
     )
 
@@ -51,11 +49,7 @@ def hfss_agg() -> pd.DataFrame:
 
     return pd.read_csv(
         load_with_encoding(
-            "ahl-private-data", "in_home/data_outputs/targets_annex/hfss_agg.csv"
+            "ahl-private-data", "in_home/processed/targets/hfss_agg.csv"
         ),
         encoding="ISO-8859-1",
     )
-
-
-def hfss_full() -> pd.DataFrame:
-    return pd.read_csv(PROJECT_DIR / "inputs/processed/hfss_full.csv")

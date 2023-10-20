@@ -6,30 +6,45 @@ from ahl_targets.utils import simulation_utils as su
 from ahl_targets.getters import get_data
 from ahl_targets.getters import simulated_outcomes as get_sim_data
 from ahl_targets import PROJECT_DIR
-from ahl_targets.pipeline import (
-    num_iterations,
-    product_share_reform_values_low,
-    product_share_reform_values_medium,
-    product_share_reform_values_high,
-    product_share_sale_values,
-    hfss_high_sales_change_values,
-    hfss_low_sales_change_values,
-    hfss_cutoff,
-)
+import yaml
+from ahl_targets.pipeline import product_transformation as pt
+
 
 if __name__ == "__main__":
     # set seed for reproducibility
 
     np.random.seed(42)
 
+    with open(
+        f"{PROJECT_DIR}/ahl_targets/config/hfss_model.yaml",
+        "r",
+    ) as f:
+        modeling_params = yaml.safe_load(f)
+
+    num_iterations = modeling_params["num_iterations"]
+    product_share_reform_values_low = modeling_params["product_share_reform_values_low"]
+    product_share_reform_values_medium = modeling_params[
+        "product_share_reform_values_medium"
+    ]
+    product_share_reform_values_high = modeling_params[
+        "product_share_reform_values_high"
+    ]
+    hfss_high_sales_change_values = modeling_params["hfss_high_sales_change_values"]
+    hfss_low_sales_change_values = modeling_params["hfss_low_sales_change_values"]
+    hfss_cutoff = modeling_params["hfss_cutoff"]
+    product_share_sale_values = modeling_params["product_share_sale_values"]
+
     # read data
 
-    store_data = get_data.model_data().compute()
+    store_data = get_data.model_data()
     prod_table = get_data.product_metadata()
     coefficients_df = get_sim_data.coefficients_df()
 
     # round NPM score
     store_data["npm_score"] = round(store_data["npm_score"], 0)
+
+    # hfss indicator
+    store_data = store_data.pipe(pt.type).pipe(pt.is_food).pipe(pt.in_scope)
 
     # generate aggregate data
 
@@ -79,7 +94,7 @@ if __name__ == "__main__":
                 for product_share_sale in product_share_sale_values:
                     for sales_change_high in hfss_high_sales_change_values:
                         for sales_change_low in hfss_low_sales_change_values:
-                            for _ in range(num_iterations):
+                            for _ in range(30):
                                 # generate list of products to reformulate
                                 unique_products_low = unique_hfss_products_low.copy()
                                 unique_products_low[
@@ -332,8 +347,6 @@ if __name__ == "__main__":
     upload_obj(
         results_df,
         BUCKET_NAME,
-        "in_home/data_outputs/targets_annex/hfss_agg.csv",
+        "in_home/processed/targets/hfss_agg.csv",
         kwargs_writing={"index": False},
     )
-
-    results_data_df.to_csv(PROJECT_DIR / "inputs/processed/hfss_full.csv", index=False)

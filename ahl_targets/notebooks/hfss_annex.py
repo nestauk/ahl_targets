@@ -1,25 +1,11 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 from ahl_targets.getters import simulated_outcomes as get_sim_data
 from ahl_targets.getters import get_data
-from ahl_targets.utils.plotting import configure_plots
-from ahl_targets.utils.altair_save_utils import (
-    google_chrome_driver_setup,
-    save_altair,
-)
-import altair as alt
 from ahl_targets import PROJECT_DIR
 import pandas as pd
 from ahl_targets.utils import simulation_utils as su
 import matplotlib.pyplot as plt
 import os
-
-
-# In[2]:
+from ahl_targets.pipeline import product_transformation as pt
 
 
 pd.set_option("display.max_columns", None)
@@ -30,24 +16,16 @@ path = PROJECT_DIR / "outputs/reports/chart_csv"
 if not os.path.exists(path):
     os.mkdir(path)
 
-# In[3]:
-
 
 results_df = get_sim_data.hfss_agg()
-results_data_df = get_sim_data.hfss_full()
+results_data_df = get_data.get_npm()
+store_data = get_data.model_data()
 
+store_data = store_data.pipe(pt.type).pipe(pt.is_food).pipe(pt.in_scope)
 
-# In[4]:
-
-
-store_data = get_data.model_data().compute()
-results_df = get_sim_data.hfss_agg()
 
 store_weight_hfss = su.weighted_hfss(store_data)
 store_weight_hfss["prod_weight_g"] = store_weight_hfss.pipe(su.prod_weight_g)
-
-
-# In[7]:
 
 
 # create aggregated file by store
@@ -66,9 +44,6 @@ grouped_mean = (
     .mean()
     .reset_index()
 )
-
-
-# In[11]:
 
 
 # create scenario file
@@ -93,11 +68,11 @@ all_sum["hfss_share_kg_baseline"] = (
 )
 all_sum["hfss_share_kg_new"] = all_sum["hfss_kg_new"] / all_sum["total_kg_new"]
 
-all_sum["kcal_pp_baseline"] = all_sum["total_kcal_baseline"] / 66000000 / 365
-all_sum["kcal_pp_new"] = all_sum["total_kcal_new"] / 66000000 / 365
+all_sum["kcal_pp_baseline"] = all_sum["total_kcal_baseline"] / 65000000 / 365
+all_sum["kcal_pp_new"] = all_sum["total_kcal_new"] / 65000000 / 365
 
-all_sum["spend_baseline"] = all_sum["total_spend_baseline"] / 66000000 / 365
-all_sum["spend_new"] = all_sum["total_spend_new"] / 66000000 / 365
+all_sum["spend_baseline"] = all_sum["total_spend_baseline"] / 65000000 / 365
+all_sum["spend_new"] = all_sum["total_spend_new"] / 65000000 / 365
 
 # Add before after variables
 baseline_columns = all_sum.filter(like="_baseline")
@@ -111,16 +86,10 @@ df = pd.concat([all_sum, result.add_suffix("_diff_percentage")], axis=1)
 df["kcal_diff"] = df["kcal_pp_new"] - df["kcal_pp_baseline"]
 
 
-# In[12]:
-
-
 bar_df = (
     store_weight_hfss.query("hfss == 1").groupby(["store_cat"])["total_kg"].sum()
     / store_weight_hfss.groupby(["store_cat"])["total_kg"].sum()
 ).reset_index()
-
-
-# In[20]:
 
 
 total = {
@@ -131,13 +100,7 @@ total = {
 }
 
 
-# In[21]:
-
-
 bar_df_sort = bar_df.sort_values(by="total_kg", ascending=False).copy()
-
-
-# In[25]:
 
 
 keys = bar_df_sort["store_cat"]
@@ -150,15 +113,9 @@ store_letters = dict(zip(keys, values))
 bar_df_sort["store_letter"] = bar_df_sort["store_cat"].map(store_letters)
 
 
-# In[27]:
-
-
 bar_df_tot = bar_df_sort.append(total, ignore_index=True)
 
 bar_df_tot = bar_df_tot.sort_values(by="total_kg", ascending=True).copy()
-
-
-# In[28]:
 
 
 def barh_chart(bar_df_tot):
@@ -197,10 +154,4 @@ def barh_chart(bar_df_tot):
     return plt
 
 
-# In[29]:
-
-
 barh_chart(bar_df_tot)
-
-
-# In[ ]:
