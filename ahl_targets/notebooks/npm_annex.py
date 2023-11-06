@@ -222,7 +222,20 @@ npm_share.to_csv(
 
 ### Chart B - nutrient distribution ###
 npm_store_df = npm_data.merge(
-    store_data[["PurchaseId", "Period", "store_cat", "is_food", "itemisation_level_3"]],
+    store_data[
+        [
+            "PurchaseId",
+            "Period",
+            "store_cat",
+            "is_food",
+            "itemisation_level_3",
+            "rst_4_extended",
+            "rst_4_market",
+            "rst_4_market_sector",
+            "rst_4_sub_market",
+            "rst_4_trading_area",
+        ]
+    ],
     left_on=["purchase_id", "period"],
     right_on=["PurchaseId", "Period"],
     how="inner",
@@ -230,7 +243,7 @@ npm_store_df = npm_data.merge(
 
 # Products grouped by NPM score to get avg: sugar, salt...ect per 100g
 prod_per_100 = (
-    npm_store_df.groupby(["product_code"])[
+    npm_store_df.groupby(["product_code", "rst_4_market"])[
         [
             "kcal_per_100g",
             "sat_per_100g",
@@ -243,6 +256,11 @@ prod_per_100 = (
     .mean()
     .reset_index()
 )
+
+# remove salt
+
+prod_per_100 = prod_per_100[prod_per_100["rst_4_market"] != "Salt"]
+
 prod_100_npm = prod_per_100.merge(
     chart_c_df[["product_code", "npm_w"]],
     left_on="product_code",
