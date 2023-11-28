@@ -53,6 +53,12 @@ store_data = get_data.model_data()
 results_df = get_sim_data.npm_agg()
 npm_data = get_data.get_npm()
 
+# Get product categories
+prod_cats = (
+    store_data[["Product Code", "store_cat", "rst_4_market_sector"]]
+    .drop_duplicates()
+    .copy()
+)
 
 # create aggregate data with weights
 store_weight_npm = su.weighted_npm(store_data)
@@ -153,6 +159,15 @@ avg_retailer = (
     .sum()
     / store_weight_npm["kg_w"].groupby(store_weight_npm["store_cat"]).sum()
 ).reset_index(name="npm")
+
+avg_retailer = (
+    (store_weight_npm["kg_w"] * store_weight_npm["npm_score"])
+    .groupby(store_weight_npm["store_cat"])
+    .sum()
+    / store_weight_npm["kg_w"].sum()
+).reset_index(name="npm")
+
+
 # Add in row manually for where store == 'Target' and npm == avg['mean_npm_kg_new'] where npm_reduction == 3, sales_change_low == 5 and sales_change_high == 10
 avg_retailer = pd.concat(
     [
@@ -175,6 +190,37 @@ avg_retailer = pd.concat(
 # Save as csv (for use in chart Y)
 avg_retailer.to_csv(
     PROJECT_DIR / "outputs/reports/chart_csv/chartY_updated.csv", index=False
+)
+
+# Category level NPM - for specific retailer
+store_weight_npm_cat = (
+    store_weight_npm.copy()
+    .merge(
+        prod_cats,
+        left_on=["product_code", "store_cat"],
+        right_on=["Product Code", "store_cat"],
+        how="left",
+    )
+    .drop(columns=["Product Code"])
+)
+
+store_weight_npm_cat = store_weight_npm_cat[
+    store_weight_npm_cat["store_cat"] == "Total Asda"
+].copy()
+
+retailer_npm_cat = (
+    (store_weight_npm_cat["npm_score"] * store_weight_npm_cat["kg_w"])
+    .groupby(store_weight_npm_cat["rst_4_market_sector"])
+    .sum()
+    / store_weight_npm_cat.groupby(["rst_4_market_sector"])["kg_w"].sum()
+).reset_index(name="npm_w")
+
+# Plot NPM by category (horizontal bar chart) sorted by npm
+retailer_npm_cat.sort_values(by="npm_w", ascending=True).plot.barh(
+    x="rst_4_market_sector",
+    y="npm_w",
+    figsize=(7, 5),
+    legend=False,
 )
 
 
