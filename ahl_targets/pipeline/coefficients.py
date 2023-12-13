@@ -9,6 +9,8 @@ if __name__ == "__main__":
     store_data = get_data.model_data()
 
     coefficients = []
+    error = []
+    stderror = []
 
     # Iterate over unique categories and run the regression for each subset
     for category in store_data["rst_4_market_sector"].unique():
@@ -29,13 +31,43 @@ if __name__ == "__main__":
             {"rst_4_market_sector": category, "Coefficient": coefficient}
         )
 
+        # Extract standard error
+        std_error = results.bse[1]
+
+        # Add the standard error to the DataFrame
+        stderror.append({"rst_4_market_sector": category, "Standard Error": std_error})
+
+        # Extract R squared
+        rsquared = results.rsquared
+
+        # Add the R squared to the DataFrame
+        error.append({"rst_4_market_sector": category, "R Squared": rsquared})
+
     # Print the coefficients table
     coefficients_df = pd.DataFrame(coefficients)
+
+    # Print the error table
+    error_df = pd.DataFrame(error)
+
+    # Print the standard error table
+    stderror_df = pd.DataFrame(stderror)
+
+    # combine tables
+    combined_df = coefficients_df.merge(stderror_df, on="rst_4_market_sector").merge(
+        error_df, on="rst_4_market_sector"
+    )
 
     # upload to S3
     upload_obj(
         coefficients_df,
         BUCKET_NAME,
         "in_home/processed/targets/coefficients.csv",
+        kwargs_writing={"index": False},
+    )
+
+    upload_obj(
+        combined_df,
+        BUCKET_NAME,
+        "in_home/processed/targets/ed_npm_regression_output.csv",
         kwargs_writing={"index": False},
     )
