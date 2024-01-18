@@ -511,3 +511,17 @@ def model_data():
         download_as="dataframe",
         kwargs_boto={"Config": TransferConfig(io_chunksize=20947892)},
     )
+
+
+def full_npm() -> pd.DataFrame:
+    """Download the npm scores from S3
+
+    Returns:
+        pd.DataFrame: The npm scores
+    """
+    return download_obj(
+        BUCKET_NAME,
+        "in_home/processed/npm_with_nut.parquet",
+        download_as="dataframe",
+        kwargs_boto={"Config": TransferConfig(io_chunksize=20947892)},
+    )

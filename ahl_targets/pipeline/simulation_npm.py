@@ -7,6 +7,7 @@ from ahl_targets.getters import get_data
 from ahl_targets.getters import simulated_outcomes as get_sim_data
 import yaml
 
+
 if __name__ == "__main__":
     with open(
         f"{PROJECT_DIR}/ahl_targets/config/npm_model.yaml",
@@ -151,10 +152,10 @@ if __name__ == "__main__":
                             ).sum()
 
                             kcal_pp_baseline = (
-                                randomised["total_kcal"].sum() / 66000000 / 365
+                                randomised["total_kcal"].sum() / 65121700 / 365
                             )
                             kcal_pp_new = (
-                                randomised["new_kcal_tot"].sum() / 66000000 / 365
+                                randomised["new_kcal_tot"].sum() / 65121700 / 365
                             )
 
                             total_prod_baseline = randomised["total_prod"].sum()
@@ -162,7 +163,7 @@ if __name__ == "__main__":
 
                             spend_baseline = (
                                 ((randomised["total_prod"] * randomised["spend"]).sum())
-                                / 66000000
+                                / 65121700
                                 / 52
                             )
                             spend_new = (
@@ -172,7 +173,7 @@ if __name__ == "__main__":
                                         * randomised["spend"]
                                     ).sum()
                                 )
-                                / 66000000
+                                / 65121700
                                 / 52
                             )
 

@@ -11,7 +11,7 @@ if __name__ == "__main__":
     store_lines = get_data.store_itemisation_lines()
     pur_rec_vol = get_data.purchase_records_volume()
     prod_table = get_data.product_metadata()
-    npm = get_data.get_npm()
+    npm = get_data.full_npm()
     nut = get_data.nutrition()
 
     logging.info("This script takes about 20 minutes to run")
@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
     logging.info("filter to kg only")
     # filter to kg only
-    dat2 = dat1.query("reported_volume == 'Kilos'")
+    dat2 = dat1.query("reported_volume_up == 'Kilos'")
 
     logging.info("merge with store data and npm")
 
