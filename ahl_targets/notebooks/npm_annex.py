@@ -1,5 +1,6 @@
 from ahl_targets.getters import simulated_outcomes as get_sim_data
 from ahl_targets.getters import get_data
+from ahl_targets.pipeline import product_transformation as pt
 from ahl_targets.utils.plotting import configure_plots
 from ahl_targets.utils.altair_save_utils import (
     google_chrome_driver_setup,
@@ -19,13 +20,109 @@ if not os.path.exists(path):
     os.mkdir(path)
 
 
+def npm_density_plot(plt_df_sub):
+    chart = (
+        alt.Chart(plt_df_sub)
+        .transform_density(
+            "npm_w", as_=["size", "density"], groupby=["when"], bandwidth=2
+        )
+        .mark_line()
+        .encode(
+            x=alt.X(
+                "size:Q",
+                axis=alt.Axis(
+                    title="Sales weighted average NPM score",
+                ),
+            ),
+            y=alt.Y("density:Q", axis=alt.Axis(title="Weighted sales (%)", format="%")),
+            color=alt.Color("when:N", legend=alt.Legend(title="")),
+        )
+    )
+    return configure_plots(
+        chart,
+        "",
+        "",
+        16,
+        14,
+        14,
+    )
+
+
 # read data
 store_data = get_data.model_data()
 results_df = get_sim_data.npm_agg()
+npm_data = get_data.get_npm()
+
+# Get product categories
+prod_cats = (
+    store_data[["Product Code", "store_cat", "rst_4_market_sector"]]
+    .drop_duplicates()
+    .copy()
+)
 
 # create aggregate data with weights
 store_weight_npm = su.weighted_npm(store_data)
 store_weight_npm["prod_weight_g"] = store_weight_npm.pipe(su.prod_weight_g)
+
+
+# HFSS info
+store_data_hfss = pt.type(store_data)
+store_data_hfss = pt.in_scope(store_data_hfss)
+
+store_data_hfss["weight_kcal"] = (
+    store_data_hfss["Gross Up Weight"] * store_data_hfss["Energy KCal"]
+)
+store_data_hfss["weight_vol"] = (
+    store_data_hfss["Gross Up Weight"] * store_data_hfss["volume_up"]
+)
+store_data_hfss["unweighted"] = store_data_hfss["Gross Up Weight"]
+
+# HFSS volume weighted shares
+hfss_shares_volume = (
+    store_data_hfss.groupby(["in_scope"])["weight_vol"].sum()
+    / store_data_hfss["weight_vol"].sum()
+)
+# HFSS product weighted shares
+hfss_shares_unweighted = (
+    store_data_hfss.groupby(["in_scope"])["unweighted"].sum()
+    / store_data_hfss["unweighted"].sum()
+)
+
+hfss_shares_kcal = (
+    store_data_hfss.groupby(["in_scope"])["weight_kcal"].sum()
+    / store_data_hfss["weight_kcal"].sum()
+)
+
+# Shares of unique products sold (sort by purchase date)
+unique_prods = store_data_hfss.sort_values(
+    by=["Purchase Date"], ascending=False
+).drop_duplicates(subset=["product_code"], keep="first")
+unique_prods_sold = (
+    unique_prods.groupby(["in_scope"])["product_code"].nunique()
+    / unique_prods["product_code"].nunique()
+)
+
+
+# Create new column high NPM >= 4 (1 else 0)
+store_data_hfss["high_npm"] = store_data_hfss["npm_score"].apply(
+    lambda x: 1 if x >= 4 else 0
+)
+
+hfss_high_volume = (
+    store_data_hfss.groupby(["high_npm"])["weight_vol"].sum()
+    / store_data_hfss["weight_vol"].sum()
+)
+
+hfss_high_unweighted = (
+    store_data_hfss.groupby(["high_npm"])["unweighted"].sum()
+    / store_data_hfss["unweighted"].sum()
+)
+
+hfss_high_kcal = (
+    store_data_hfss.groupby(["high_npm"])["weight_kcal"].sum()
+    / store_data_hfss["weight_kcal"].sum()
+)
+
 
 # average across all iterations
 avg = (
@@ -62,6 +159,15 @@ avg_retailer = (
     .sum()
     / store_weight_npm["kg_w"].groupby(store_weight_npm["store_cat"]).sum()
 ).reset_index(name="npm")
+
+avg_retailer = (
+    (store_weight_npm["kg_w"] * store_weight_npm["npm_score"])
+    .groupby(store_weight_npm["store_cat"])
+    .sum()
+    / store_weight_npm["kg_w"].sum()
+).reset_index(name="npm")
+
+
 # Add in row manually for where store == 'Target' and npm == avg['mean_npm_kg_new'] where npm_reduction == 3, sales_change_low == 5 and sales_change_high == 10
 avg_retailer = pd.concat(
     [
@@ -82,7 +188,40 @@ avg_retailer = pd.concat(
     ignore_index=True,
 )
 # Save as csv (for use in chart Y)
-avg_retailer.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartY.csv", index=False)
+avg_retailer.to_csv(
+    PROJECT_DIR / "outputs/reports/chart_csv/chartY_updated.csv", index=False
+)
+
+# Category level NPM - for specific retailer
+store_weight_npm_cat = (
+    store_weight_npm.copy()
+    .merge(
+        prod_cats,
+        left_on=["product_code", "store_cat"],
+        right_on=["Product Code", "store_cat"],
+        how="left",
+    )
+    .drop(columns=["Product Code"])
+)
+
+store_weight_npm_cat = store_weight_npm_cat[
+    store_weight_npm_cat["store_cat"] == "Total Asda"
+].copy()
+
+retailer_npm_cat = (
+    (store_weight_npm_cat["npm_score"] * store_weight_npm_cat["kg_w"])
+    .groupby(store_weight_npm_cat["rst_4_market_sector"])
+    .sum()
+    / store_weight_npm_cat.groupby(["rst_4_market_sector"])["kg_w"].sum()
+).reset_index(name="npm_w")
+
+# Plot NPM by category (horizontal bar chart) sorted by npm
+retailer_npm_cat.sort_values(by="npm_w", ascending=True).plot.barh(
+    x="rst_4_market_sector",
+    y="npm_w",
+    figsize=(7, 5),
+    legend=False,
+)
 
 
 # Generate before-after variables
@@ -107,8 +246,100 @@ baseline_prod = (
     / store_weight_npm.groupby(["product_code"])["kg_w"].sum()
 ).reset_index(name="npm_w")
 
-baseline_prod.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartC.csv")
+alt.data_transformers.disable_max_rows()
+### Creating data for chart C (with updated NPM data) ###
+chart_c_df = baseline_prod.copy()
+chart_c_df["npm_w"] = ((-2) * chart_c_df["npm_w"]) + 70
+npm_density_plot(chart_c_df)
+chart_c_df.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartC_updated.csv")
 
+chart_c_df["npm_rounded"] = chart_c_df["npm_w"].round(0)
+# Percent of products with each NPM score
+npm_share = (
+    (chart_c_df["npm_rounded"].value_counts(normalize=True) * 100)
+    .reset_index()
+    .rename(columns={"index": "npm", "npm_rounded": "Percent Share"})
+)
+npm_share.to_csv(
+    PROJECT_DIR / "outputs/reports/chart_csv/chartC2_alternative_npm_share.csv",
+    index=False,
+)
+
+
+### Chart B - nutrient distribution ###
+npm_store_df = npm_data.merge(
+    store_data[
+        [
+            "PurchaseId",
+            "Period",
+            "store_cat",
+            "is_food",
+            "itemisation_level_3",
+            "rst_4_extended",
+            "rst_4_market",
+            "rst_4_market_sector",
+            "rst_4_sub_market",
+            "rst_4_trading_area",
+        ]
+    ],
+    left_on=["purchase_id", "period"],
+    right_on=["PurchaseId", "Period"],
+    how="inner",
+).drop(columns=["PurchaseId", "Period"])
+
+# Products grouped by NPM score to get avg: sugar, salt...ect per 100g
+prod_per_100 = (
+    npm_store_df.groupby(["product_code", "rst_4_market"])[
+        [
+            "kcal_per_100g",
+            "sat_per_100g",
+            "prot_per_100g",
+            "sug_per_100g",
+            "sod_per_100g",
+            "fibre_per_100g",
+        ]
+    ]
+    .mean()
+    .reset_index()
+)
+
+# remove salt
+
+prod_per_100 = prod_per_100[prod_per_100["rst_4_market"] != "Salt"]
+
+prod_100_npm = prod_per_100.merge(
+    chart_c_df[["product_code", "npm_w"]],
+    left_on="product_code",
+    right_on="product_code",
+).drop(["product_code"], axis=1)
+
+prod_100_npm["npm_w"] = prod_100_npm["npm_w"].round(0)
+
+prod_100_npm.rename(
+    columns={
+        "npm_w": "npm_score",
+    },
+    inplace=True,
+)
+
+
+prod_100_npm = (
+    prod_100_npm.groupby(["npm_score"])
+    .mean()
+    .reset_index()
+    .melt(
+        id_vars=["npm_score"],
+        var_name="component",
+        value_name="per 100g",
+    )
+)
+# Saving CSV file (for chartB)
+prod_100_npm.to_csv(
+    PROJECT_DIR / f"outputs/reports/chart_csv/chartB_updated.csv", index=False
+)
+
+
+#### Previous code (for reference) ####
 
 # Data for chart C
 baseline_prod["npm_rounded"] = baseline_prod["npm_w"].round(0)
@@ -118,36 +349,6 @@ npm_share = (
     .reset_index()
     .rename(columns={"index": "npm", "npm_rounded": "Percent Share"})
 )
-
-alt.data_transformers.disable_max_rows()
-
-
-def npm_density_plot(plt_df_sub):
-    chart = (
-        alt.Chart(plt_df_sub)
-        .transform_density(
-            "npm_w", as_=["size", "density"], groupby=["when"], bandwidth=2
-        )
-        .mark_line()
-        .encode(
-            x=alt.X(
-                "size:Q",
-                axis=alt.Axis(
-                    title="Sales weighted average NPM score",
-                ),
-            ),
-            y=alt.Y("density:Q", axis=alt.Axis(title="Weighted sales (%)", format="%")),
-            color=alt.Color("when:N", legend=alt.Legend(title="")),
-        )
-    )
-    return configure_plots(
-        chart,
-        "",
-        "",
-        16,
-        14,
-        14,
-    )
 
 
 # Updated version of Chart C with new NPM data
@@ -161,7 +362,6 @@ save_altair(
     "annex/npm_share_sales",
     driver=webdr,
 )
-
 
 # Save as csv (for use in chart C)
 npm_share.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartC2_v2.csv", index=False)

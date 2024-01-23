@@ -492,8 +492,9 @@ def get_npm() -> pd.DataFrame:
     """
     return download_obj(
         BUCKET_NAME,
-        "in_home/processed/npm_with_nut.csv",
+        "in_home/processed/npm_with_nut.parquet",
         download_as="dataframe",
+        kwargs_boto={"Config": TransferConfig(io_chunksize=20947892)},
     )
 
 
