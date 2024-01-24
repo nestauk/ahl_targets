@@ -54,8 +54,9 @@ def weighted_prod_by_store(store_data):
     Args:
         store_data (pd.DataFrame): merged data
     """
+    store_data["cross_prod"] = store_data["Gross Up Weight"] * store_data["Quantity"]
     out = (
-        store_data.groupby(["product_code", "store_cat"])["Gross Up Weight"]
+        store_data.groupby(["product_code", "store_cat"])["cross_prod"]
         .sum()
         .reset_index(name="total_prod")
     )

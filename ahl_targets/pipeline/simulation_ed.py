@@ -1,28 +1,33 @@
 import pandas as pd
 import numpy as np
 from nesta_ds_utils.loading_saving.S3 import upload_obj
-from ahl_targets import BUCKET_NAME
+from ahl_targets import BUCKET_NAME, PROJECT_DIR
 from ahl_targets.utils import simulation_utils as su
 from ahl_targets.getters import get_data
-from ahl_targets.pipeline import (
-    num_iterations,
-    product_share_reform_values,
-    product_share_sale_values,
-    ed_reduction_values,
-    ed_high_sales_change_values,
-    ed_low_sales_change_values,
-    ed_cutoff,
-)
+import yaml
 
 
 if __name__ == "__main__":
+    with open(
+        f"{PROJECT_DIR}/ahl_targets/config/ed_model.yaml",
+        "r",
+    ) as f:
+        modeling_params = yaml.safe_load(f)
+
+    num_iterations = modeling_params["num_iterations"]
+    product_share_reform_values = modeling_params["product_share_reform_values"]
+    product_share_sales_values = modeling_params["product_share_sales_values"]
+    ed_reduction_values = modeling_params["ed_reduction_values"]
+    unhealthy_sales_change_values = modeling_params["unhealthy_sales_change_values"]
+    healthy_sales_change_values = modeling_params["healthy_sales_change_values"]
+
     # set seed for reproducibility
 
     np.random.seed(42)
 
     # read data
 
-    store_data = get_data.model_data().compute()
+    store_data = get_data.model_data()
     prod_table = get_data.product_metadata()
 
     # generate aggregate data
@@ -37,19 +42,19 @@ if __name__ == "__main__":
 
     # Nested loop to iterate through different values of product_share and ed_reduction
     for product_share_reform in product_share_reform_values:
-        for product_share_sale in product_share_sale_values:
+        for product_share_sale in product_share_sales_values:
             for ed_reduction in ed_reduction_values:
-                for sales_change_high in ed_high_sales_change_values:
-                    for sales_change_low in ed_low_sales_change_values:
+                for sales_change_high in unhealthy_sales_change_values:
+                    for sales_change_low in healthy_sales_change_values:
                         # Repeat the code num_iterations times
-                        for _ in range(num_iterations):
+                        for _ in range(num_iterations[0]):
                             # split into high and low ed
-                            ed_cut = store_weight["ed"] >= ed_cutoff
+                            ed_cut = store_weight["ed"] >= 400
                             high_ed = store_weight[ed_cut].copy()
                             low_ed = store_weight[~ed_cut].copy()
 
                             unique_products = pd.DataFrame(
-                                store_weight[(store_weight["ed"] >= ed_cutoff)][
+                                store_weight[(store_weight["ed"] >= 400)][
                                     "product_code"
                                 ].unique(),
                                 columns=["product_code"],
@@ -127,32 +132,32 @@ if __name__ == "__main__":
                             ).sum()
 
                             kcal_pp_baseline = (
-                                randomised["total_kcal"].sum() / 66000000 / 365
+                                randomised["total_kcal"].sum() / 65121700 / 365
                             )
                             kcal_pp_new = (
-                                randomised["new_kcal_tot"].sum() / 66000000 / 365
+                                randomised["new_kcal_tot"].sum() / 65121700 / 365
                             )
 
                             total_prod_baseline = randomised["total_prod"].sum()
                             total_prod_new = randomised["new_total_prod"].sum()
 
-                            kcal_high_baseline = randomised[
-                                randomised["ed"] >= ed_cutoff
-                            ]["total_kcal"].sum()
-                            kcal_high_new = randomised[
-                                randomised["new_ed"] >= ed_cutoff
-                            ]["new_kcal_tot"].sum()
+                            kcal_high_baseline = randomised[randomised["ed"] >= 400][
+                                "total_kcal"
+                            ].sum()
+                            kcal_high_new = randomised[randomised["new_ed"] >= 400][
+                                "new_kcal_tot"
+                            ].sum()
 
-                            kcal_low_baseline = randomised[
-                                randomised["ed"] < ed_cutoff
-                            ]["total_kcal"].sum()
-                            kcal_low_new = randomised[randomised["new_ed"] < ed_cutoff][
+                            kcal_low_baseline = randomised[randomised["ed"] < 400][
+                                "total_kcal"
+                            ].sum()
+                            kcal_low_new = randomised[randomised["new_ed"] < 400][
                                 "new_kcal_tot"
                             ].sum()
 
                             spend_baseline = (
                                 ((randomised["total_prod"] * randomised["spend"]).sum())
-                                / 66000000
+                                / 65121700
                                 / 52
                             )
                             spend_new = (
@@ -162,7 +167,7 @@ if __name__ == "__main__":
                                         * randomised["spend"]
                                     ).sum()
                                 )
-                                / 66000000
+                                / 65121700
                                 / 52
                             )
 
@@ -209,13 +214,6 @@ if __name__ == "__main__":
     upload_obj(
         results_df,
         BUCKET_NAME,
-        "in_home/data_outputs/targets_annex/ed_agg.csv",
+        "in_home/processed/targets/ed_agg.csv",
         kwargs_writing={"index": False},
     )
-
-    # upload_obj(
-    #     results_data_df,
-    #     BUCKET_NAME,
-    #     "in_home/data_outputs/targets_annex/ed_full.csv",
-    #     kwargs_writing={"index": False},
-    # )

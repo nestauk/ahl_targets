@@ -45,6 +45,10 @@ model_result["kcal_diff"] = (
     model_result["kcal_pp_new"] - model_result["kcal_pp_baseline"]
 )
 model_result["spend_diff"] = model_result["spend_new"] - model_result["spend_baseline"]
+model_result["spend_diff_pp"] = (
+    model_result["spend_diff"] / model_result["spend_baseline"] * 100
+)
+
 model_result["npm_diff"] = (
     model_result["mean_npm_kg_new"] - model_result["mean_npm_kg_baseline"]
 )
@@ -53,78 +57,20 @@ model_result["npm_r_diff"] = model_result["npm_new_r"] - model_result["npm_base_
 
 result_df = model_result[
     (model_result["npm_reduction"] == 3)
-    & (model_result["sales_change_high"] == 7)
-    & (model_result["sales_change_low"] == 5)
+    & (model_result["sales_change_high"] == 10.5)
+    & (model_result["sales_change_low"] == 9)
 ]
-
-result_df.groupby(
-    [
-        "product_share_reform",
-        "product_share_sale",
-        "sales_change_high",
-        "sales_change_low",
-        "npm_reduction",
-    ]
-)["kcal_pp_new"].mean().reset_index()
-result_df.groupby(
-    [
-        "product_share_reform",
-        "product_share_sale",
-        "sales_change_high",
-        "sales_change_low",
-        "npm_reduction",
-    ]
-)["kcal_pp_new"].std().reset_index()
-
-result_df.groupby(
-    [
-        "product_share_reform",
-        "product_share_sale",
-        "sales_change_high",
-        "sales_change_low",
-        "npm_reduction",
-    ]
-)["kcal_diff"].mean().reset_index()
-result_df.groupby(
-    [
-        "product_share_reform",
-        "product_share_sale",
-        "sales_change_high",
-        "sales_change_low",
-        "npm_reduction",
-    ]
-)["kcal_diff"].std().reset_index()
-
-result_df.groupby(
-    [
-        "product_share_reform",
-        "product_share_sale",
-        "sales_change_high",
-        "sales_change_low",
-        "npm_reduction",
-    ]
-)["mean_npm_kg_baseline"].mean().reset_index()
-
-result_df.groupby(
-    [
-        "product_share_reform",
-        "product_share_sale",
-        "sales_change_high",
-        "sales_change_low",
-        "npm_reduction",
-    ]
-)["mean_npm_kg_new"].mean().reset_index()
 
 
 # Assuming `result_df` is already defined and contains the relevant data
 
 # Plotting the histogram
-plt.hist(result_df["kcal_pp_new"], bins=10, edgecolor="black")
+plt.hist(result_df["kcal_diff"], bins=10, edgecolor="black")
 
 # Adding labels and title
-plt.xlabel("kcal_pp_new")
+plt.xlabel("kcal_diff")
 plt.ylabel("Frequency")
-plt.title("Histogram of kcal_pp_new")
+plt.title("Histogram of kcal_diff")
 
 # Displaying the histogram
 plt.show()
@@ -168,6 +114,7 @@ model_agg = (
         "spend_baseline",
         "kcal_diff",
         "spend_diff",
+        "spend_diff_pp",
         "npm_r_diff",
         "npm_new_r",
         "npm_base_r",
@@ -176,13 +123,8 @@ model_agg = (
     .reset_index()
 )
 
-model_agg["kcal_diff"] = model_agg["kcal_pp_new"] - model_agg["kcal_pp_baseline"]
-model_agg["spend_diff"] = model_agg["spend_new"] - model_agg["spend_baseline"]
 
-result_df["kcal_diff"].mean()
-result_df["spend_diff"].mean()
-result_df["npm_diff"].mean()
-
+# 95% confidence intervals
 
 to_calc = result_df["kcal_diff"].tolist()
 
@@ -196,6 +138,12 @@ to_calc = result_df["spend_diff"].tolist()
 
 st.t.interval(0.95, df=len(to_calc) - 1, loc=np.mean(to_calc), scale=st.sem(to_calc))
 
+to_calc = result_df["npm_r_diff"].tolist()
+
+st.t.interval(0.95, df=len(to_calc) - 1, loc=np.mean(to_calc), scale=st.sem(to_calc))
+
+
+# average per retailer
 
 store_data = model_data()
 
@@ -329,31 +277,78 @@ combined_df = (
 # error distribution
 npm_error = npm_robustness()
 
+npm_error["npm_base_r"] = -2 * npm_error["mean_npm_kg_baseline"] + 70
+npm_error["npm_new_r"] = -2 * npm_error["mean_npm_kg_new"] + 70
+
 npm_error["kcal_diff"] = npm_error["kcal_pp_new"] - npm_error["kcal_pp_baseline"]
+npm_error["spend_diff"] = npm_error["spend_new"] - npm_error["spend_baseline"]
+npm_error["npm_diff"] = npm_error["mean_npm_kg_new"] - npm_error["mean_npm_kg_baseline"]
+npm_error["npm_diff_r"] = npm_error["npm_new_r"] - npm_error["npm_base_r"]
 
-npm_error["kcal_diff"].hist()
 
-import scipy.stats as stats
+npm_error["kcal_diff"].describe()
 
-# Calculate the mean and standard deviation of npm_error["var"]
-mean = npm_error["kcal_diff"].mean()
-std_dev = npm_error["kcal_diff"].std()
+# Plotting the histogram
+plt.hist(npm_error["kcal_diff"], bins=10, edgecolor="black")
 
-# Calculate the sample size
-sample_size = len(npm_error["kcal_diff"])
+# Adding labels and title
+plt.xlabel("kcal_diff")
+plt.ylabel("Frequency")
+plt.title("Histogram of kcal_diff")
 
-# Calculate the standard error
-std_error = std_dev / (sample_size**0.5)
+# Displaying the histogram
+plt.show()
 
-# Set the confidence level
-confidence_level = 0.95
 
-# Calculate the margin of error
-margin_of_error = stats.t.ppf((1 + confidence_level) / 2, sample_size - 1) * std_error
+npm_error["spend_diff"].describe()
 
-# Calculate the lower and upper bounds of the confidence interval
-lower_bound = mean - margin_of_error
-upper_bound = mean + margin_of_error
+to_calc = npm_error["spend_diff"].tolist()
 
-# Print the confidence interval
-print("Confidence Interval: [{:.2f}, {:.2f}]".format(lower_bound, upper_bound))
+st.t.interval(0.95, df=len(to_calc) - 1, loc=np.mean(to_calc), scale=st.sem(to_calc))
+
+# Plotting the histogram
+plt.hist(npm_error["spend_diff"], bins=10, edgecolor="black")
+
+# Adding labels and title
+plt.xlabel("spend_diff")
+plt.ylabel("Frequency")
+plt.title("Histogram of spend_diff")
+
+# Displaying the histogram
+plt.show()
+
+
+npm_error["npm_diff"].describe()
+
+to_calc = npm_error["npm_diff"].tolist()
+
+st.t.interval(0.95, df=len(to_calc) - 1, loc=np.mean(to_calc), scale=st.sem(to_calc))
+
+# Plotting the histogram
+plt.hist(npm_error["npm_diff"], bins=10, edgecolor="black")
+
+# Adding labels and title
+plt.xlabel("npm_diff")
+plt.ylabel("Frequency")
+plt.title("Histogram of npm_diff")
+
+# Displaying the histogram
+plt.show()
+
+
+npm_error["npm_diff_r"].describe()
+
+to_calc = npm_error["npm_diff_r"].tolist()
+
+st.t.interval(0.95, df=len(to_calc) - 1, loc=np.mean(to_calc), scale=st.sem(to_calc))
+
+# Plotting the histogram
+plt.hist(npm_error["npm_diff_r"], bins=20, edgecolor="black")
+
+# Adding labels and title
+plt.xlabel("npm_diff_r")
+plt.ylabel("Frequency")
+plt.title("Histogram of npm_diff_r")
+
+# Displaying the histogram
+plt.show()

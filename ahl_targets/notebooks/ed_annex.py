@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[91]:
-
-
 from ahl_targets.getters import simulated_outcomes as get_sim_data
 from ahl_targets.getters import get_data
 from ahl_targets.utils.plotting import configure_plots
@@ -17,9 +11,9 @@ import pandas as pd
 from ahl_targets.utils import simulation_utils as su
 import matplotlib.pyplot as plt
 import os
+import numpy as np
 
 
-# In[92]:
 path = PROJECT_DIR / "outputs/reports/chart_csv"
 
 # check whether directory already exists
@@ -27,9 +21,6 @@ if not os.path.exists(path):
     os.mkdir(path)
 
 pd.set_option("display.max_columns", None)
-
-
-# In[93]:
 
 
 def annex_chart_kcal(df):
@@ -74,9 +65,6 @@ def annex_chart_spend(df):
         14,
         14,
     )
-
-
-# In[94]:
 
 
 def density_plot(plt_df_sub, thres, band_df, band_df_2):
@@ -134,21 +122,64 @@ def density_plot(plt_df_sub, thres, band_df, band_df_2):
     )
 
 
-# In[95]:
-
-
 # read data
-store_data = get_data.model_data().compute()
+store_data = get_data.model_data()
 results_df = get_sim_data.energy_density_agg()
-
-
-# In[97]:
-
+excluded_data = get_data.excluded_data()
 
 # create aggregate data with weights
 
 store_weight = su.weighted_ed(store_data)
 store_weight["prod_weight_g"] = store_weight.pipe(su.prod_weight_g)
+
+# share of sales
+
+store_data["high_ed"] = store_data["ed"] >= 400
+
+# share of sales accounted for by high ed products
+(
+    store_data["Gross Up Weight"] * store_data["volume_up"] * store_data["high_ed"]
+).sum() / (store_data["Gross Up Weight"] * store_data["volume_up"]).sum()
+
+
+# share of kcal accounted for by high ed products
+
+(
+    store_data["Gross Up Weight"]
+    * store_data["Quantity"]
+    * store_data["Energy KCal"]
+    * store_data["high_ed"]
+).sum() / (
+    store_data["Gross Up Weight"] * store_data["Quantity"] * store_data["Energy KCal"]
+).sum()
+
+
+# unweighted average
+
+store_data["w"] = store_data["Gross Up Weight"] * store_data["Quantity"]
+excluded_data["w"] = excluded_data["Gross Up Weight"] * excluded_data["Quantity"]
+
+
+def weighted_mean(values, weights):
+    # Check if the lengths of values and weights match
+    if len(values) != len(weights):
+        raise ValueError("Lengths of values and weights must be the same.")
+
+    # Calculate the weighted mean
+    return np.average(values, weights=weights)
+
+
+weighted_mean(store_data["ed"], store_data["w"])
+weighted_mean(excluded_data["ed"], excluded_data["w"])
+
+store_data.groupby("store_cat").apply(lambda x: weighted_mean(x["ed"], x["w"])).std()
+
+# manufacturers
+manuf = pd.concat([store_data, excluded_data], ignore_index=True)
+
+weighted_mean(manuf["ed"], manuf["w"])
+
+manuf.groupby("manufacturer").apply(lambda x: weighted_mean(x["ed"], x["w"])).std()
 
 
 # generate average df over all iterations
@@ -221,9 +252,6 @@ df = pd.concat([avg, result.add_suffix("_diff_percentage")], axis=1)
 df["kcal_diff"] = df["kcal_pp_new"] - df["kcal_pp_baseline"]
 
 
-# In[88]:
-
-
 # generate summary chart
 webdr = google_chrome_driver_setup()
 
@@ -238,9 +266,6 @@ save_altair(
     "annex/energy_density_spend",
     driver=webdr,
 )
-
-
-# In[99]:
 
 
 baseline_prod = (
@@ -258,14 +283,8 @@ band_df = pd.DataFrame({"start": [400, 400], "stop": [0, 0]})
 band_df_2 = pd.DataFrame({"start": [900, 900], "stop": [0, 0]})
 
 
-# In[90]:
-
-
 # weighted npm average by product
 baseline_prod.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartA.csv")
-
-
-# In[ ]:
 
 
 # generate summary chart
@@ -278,9 +297,6 @@ save_altair(
 )
 
 
-# In[100]:
-
-
 # weighted npm average by product and store
 baseline_prod_store = (store_weight["ed"] * store_weight["kg_w"]).groupby(
     [store_weight["store_cat"], store_weight["product_code"]]
@@ -289,9 +305,6 @@ baseline_prod_store = (store_weight["ed"] * store_weight["kg_w"]).groupby(
 baseline_prod_store = baseline_prod_store.reset_index(name="share")
 
 baseline_prod_store.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartE1.csv")
-
-
-# In[ ]:
 
 
 def violin_plot(baseline):
@@ -333,9 +346,6 @@ def violin_plot(baseline):
         14,
         14,
     )
-
-
-# In[109]:
 
 
 # functions to create weighted standard deviation (chatgpt helped here)
@@ -383,9 +393,6 @@ result = (
 )
 
 
-# In[132]:
-
-
 def weighted_stddev(data, weights):
     # Check if data and weights have the same length
     if len(data) != len(weights):
@@ -403,9 +410,6 @@ def weighted_stddev(data, weights):
     weighted_stddev = weighted_var**0.5
 
     return weighted_stddev, weighted_mean
-
-
-# In[ ]:
 
 
 # dictionary with overall mean and standard deviation
@@ -439,18 +443,12 @@ store_letters = dict(zip(keys, values))
 result_sort["store_letter"] = result_sort["store_cat"].map(store_letters)
 
 
-# In[ ]:
-
-
 # append total to store df
 bar_df_tot = result_sort.append(total, ignore_index=True)
 
 bar_df_tot = bar_df_tot.sort_values(by="mean", ascending=True).copy()
 
 bar_df_tot.to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartE1_bar.csv")
-
-
-# In[ ]:
 
 
 def ridge_plot(source, step=30, overlap=0.5):
@@ -501,9 +499,6 @@ def ridge_plot(source, step=30, overlap=0.5):
     )
 
 
-# In[151]:
-
-
 def barh_chart(bar_df_tot):
     categories = bar_df_tot["store_letter"]
     means = bar_df_tot["mean"]
@@ -541,9 +536,6 @@ def barh_chart(bar_df_tot):
     return plt
 
 
-# In[ ]:
-
-
 # generate summary chart
 webdr = google_chrome_driver_setup()
 
@@ -552,9 +544,6 @@ save_altair(
     "annex/violin_plot",
     driver=webdr,
 )
-
-
-# In[ ]:
 
 
 source = baseline_prod_store.sample(5000)[["store_cat", "share"]]
@@ -569,13 +558,7 @@ save_altair(
 )
 
 
-# In[152]:
-
-
 barh_chart(bar_df_tot)
-
-
-# In[155]:
 
 
 results_df[
@@ -589,9 +572,6 @@ results_df[
 ].to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartG1.csv", index=False)
 
 
-# In[156]:
-
-
 results_df[
     [
         "sales_change_high",
@@ -603,4 +583,16 @@ results_df[
 ].to_csv(PROJECT_DIR / "outputs/reports/chart_csv/chartF1.csv", index=False)
 
 
-# In[ ]:
+# distributionf of sales weighted (in kg) ed
+
+store_data["ed_r"] = store_data["ed"].round(0)
+
+store_data["volume_w"] = store_data["Gross Up Weight"] * store_data["volume_up"]
+
+ed_dist = (
+    store_data.groupby("ed_r")["volume_w"].sum() / store_data["volume_w"].sum() * 100
+)
+
+ed_df = pd.DataFrame(ed_dist).reset_index()
+
+ed_df.to_csv(PROJECT_DIR / "outputs/reports/appendix_charts/chart1.csv", index=False)

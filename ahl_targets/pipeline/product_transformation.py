@@ -10,20 +10,6 @@ def type(dat):
     return dat
 
 
-# def is_food(dat):
-#     """Returns indicator whether product is food or drink based on rst_4_market_sector"""
-#     dat["is_food"] = np.where(
-#         (dat["rst_4_market_sector"] == "Alcohol")
-#         | (dat["rst_4_market_sector"] == "Chilled Drinks")
-#         | (dat["rst_4_market_sector"] == "Take Home Soft Drinks"),
-#         0,
-#         1,
-#     )
-#     return dat
-
-import numpy as np
-
-
 def is_food(dat):
     """
     Determines if a product is food or drink based on its market and market sector.

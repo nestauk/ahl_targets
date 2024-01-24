@@ -27,6 +27,38 @@ results_df = get_sim_data.npm_agg()
 store_weight_npm = su.weighted_npm(store_data)
 store_weight_npm["prod_weight_g"] = store_weight_npm.pipe(su.prod_weight_g)
 
+# sales of NPM >=4
+
+store_data["high_npm"] = store_data["npm_score"] >= 4
+
+(
+    store_data["Gross Up Weight"] * store_data["volume_up"] * store_data["high_npm"]
+).sum() / (store_data["Gross Up Weight"] * store_data["volume_up"]).sum()
+
+(
+    store_data["Gross Up Weight"]
+    * store_data["Quantity"]
+    * store_data["Energy KCal"]
+    * store_data["high_npm"]
+).sum() / (
+    store_data["Gross Up Weight"] * store_data["Quantity"] * store_data["Energy KCal"]
+).sum()
+
+# figure 2
+
+store_data["npm_r"] = store_data["npm_score"].round(0)
+
+store_data["volume_w"] = store_data["Gross Up Weight"] * store_data["volume_up"]
+
+npm_dist = (
+    store_data.groupby("npm_r")["volume_w"].sum() / store_data["volume_w"].sum() * 100
+)
+
+npm_df = pd.DataFrame(npm_dist).reset_index()
+
+npm_df.to_csv(PROJECT_DIR / "outputs/reports/appendix_charts/chart2.csv", index=False)
+
+
 # average across all iterations
 avg = (
     results_df.groupby(

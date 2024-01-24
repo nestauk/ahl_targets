@@ -513,6 +513,22 @@ def model_data():
     )
 
 
+def excluded_data():
+    """
+      Reads the npm_scores file.
+    Args:
+        None
+    Returns:
+        pd.DataFrame: npm_scores dataframe
+    """
+    return download_obj(
+        BUCKET_NAME,
+        "in_home/processed/targets/excluded_data.parquet",
+        download_as="dataframe",
+        kwargs_boto={"Config": TransferConfig(io_chunksize=20947892)},
+    )
+
+
 def full_npm() -> pd.DataFrame:
     """Download the npm scores from S3
 

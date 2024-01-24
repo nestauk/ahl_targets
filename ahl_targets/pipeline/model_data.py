@@ -40,6 +40,9 @@ if __name__ == "__main__":
     # subset to stores that are part of this analysis
     stores_sub = store_levels[store_levels["store_cat"].isin(keep_stores)]
 
+    # stores that are not part of the analysis
+    stores_not_sub = store_levels[~store_levels["store_cat"].isin(keep_stores)]
+
     logging.info("merge purchase record with product info")
     dat1 = pur_rec_vol.merge(
         prod_table, left_on="Product Code", right_on="product_code"
@@ -54,7 +57,7 @@ if __name__ == "__main__":
 
     logging.info("merge with store data and npm")
 
-    # Merge with npm and store names
+    # Merge with npm and store names (model data)
     store_data = dat2.merge(
         stores_sub, left_on="Store Code", right_on="store_id"
     ).merge(
@@ -74,9 +77,36 @@ if __name__ == "__main__":
         right_on=["Purchase Number", "Purchase Period"],
     )
 
+    # Merge with npm and store names (NOT model data)
+    store_data_not_sub = dat2.merge(
+        stores_not_sub, left_on="Store Code", right_on="store_id"
+    ).merge(
+        npm[["purchase_id", "period", "npm_score", "kcal_per_100g"]],
+        left_on=["PurchaseId", "Period"],
+        right_on=["purchase_id", "period"],
+    )
+
+    store_data_not_sub.rename(columns={"kcal_per_100g": "ed"}, inplace=True)
+
+    # remove implausible values
+    store_data_not_sub = store_data_not_sub[store_data_not_sub["ed"] < 900].copy()
+
+    out_not_sub = store_data_not_sub.merge(
+        nut[["Purchase Number", "Purchase Period", "Energy KCal"]],
+        left_on=["PurchaseId", "Period"],
+        right_on=["Purchase Number", "Purchase Period"],
+    )
+
     upload_obj(
         out,
         BUCKET_NAME,
         "in_home/processed/targets/model_data.parquet",
+        kwargs_writing={"compression": "zstd", "engine": "pyarrow"},
+    )
+
+    upload_obj(
+        out_not_sub,
+        BUCKET_NAME,
+        "in_home/processed/targets/excluded_data.parquet",
         kwargs_writing={"compression": "zstd", "engine": "pyarrow"},
     )
