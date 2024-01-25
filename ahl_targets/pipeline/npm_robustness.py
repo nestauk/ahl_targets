@@ -13,8 +13,8 @@ if __name__ == "__main__":
 
     num_iterations = 10000
     npm_reduction_values = 3
-    unhealthy_sales_change_values = 7
-    healthy_sales_change_values = 5
+    unhealthy_sales_change_values = 10.5
+    healthy_sales_change_values = 9
 
     # read data
 

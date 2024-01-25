@@ -61,6 +61,11 @@ result_df = model_result[
     & (model_result["sales_change_low"] == 9)
 ]
 
+model_result["npm_diff"].describe()
+model_result["kcal_diff"].describe()
+model_result["npm_r_diff"].describe()
+model_result["spend_diff"].describe()
+
 
 # Assuming `result_df` is already defined and contains the relevant data
 
@@ -282,11 +287,17 @@ npm_error["npm_new_r"] = -2 * npm_error["mean_npm_kg_new"] + 70
 
 npm_error["kcal_diff"] = npm_error["kcal_pp_new"] - npm_error["kcal_pp_baseline"]
 npm_error["spend_diff"] = npm_error["spend_new"] - npm_error["spend_baseline"]
+npm_error["spend_diff_pp"] = npm_error["spend_diff"] / npm_error["spend_baseline"] * 100
+
 npm_error["npm_diff"] = npm_error["mean_npm_kg_new"] - npm_error["mean_npm_kg_baseline"]
 npm_error["npm_diff_r"] = npm_error["npm_new_r"] - npm_error["npm_base_r"]
 
 
 npm_error["kcal_diff"].describe()
+
+to_calc = npm_error["kcal_diff"].tolist()
+
+st.t.interval(0.95, df=len(to_calc) - 1, loc=np.mean(to_calc), scale=st.sem(to_calc))
 
 # Plotting the histogram
 plt.hist(npm_error["kcal_diff"], bins=10, edgecolor="black")
@@ -343,7 +354,7 @@ to_calc = npm_error["npm_diff_r"].tolist()
 st.t.interval(0.95, df=len(to_calc) - 1, loc=np.mean(to_calc), scale=st.sem(to_calc))
 
 # Plotting the histogram
-plt.hist(npm_error["npm_diff_r"], bins=20, edgecolor="black")
+plt.hist(npm_error["npm_diff_r"], bins=10, edgecolor="black")
 
 # Adding labels and title
 plt.xlabel("npm_diff_r")
