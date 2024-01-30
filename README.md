@@ -5,14 +5,12 @@ In this project we explored options for how health targets could be effectively 
 
 ## :hammer_and_wrench: Setup
 
-**Step 1.** Check that you meet the data science cookiecutter [requirements](http://nestauk.github.io/ds-cookiecutter). In brief, you should:
-
-- Install the following components:
-  - [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/download.html)
-  - [gh](https://formulae.brew.sh/formula/gh), GitHub command line tool
-  - [direnv](https://formulae.brew.sh/formula/direnv#default), for using environment variables
-  - [git-crypt](https://github.com/AGWA/git-crypt/blob/master/INSTALL.md#installing-on-mac-os-x), tool for encryption of sensitive files
-- Have a Nesta AWS account, and install and configure your [AWS Command Line Interface](https://docs.aws.amazon.com/polly/latest/dg/setup-aws-cli.html)
+**Step 1.** Install the following components:
+- [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/download.html)
+- [gh](https://formulae.brew.sh/formula/gh), GitHub command line tool
+- [direnv](https://formulae.brew.sh/formula/direnv#default), for using environment variables
+- [git-crypt](https://github.com/AGWA/git-crypt/blob/master/INSTALL.md#installing-on-mac-os-x), tool for encryption of sensitive files
+- Install and configure your [AWS Command Line Interface](https://docs.aws.amazon.com/polly/latest/dg/setup-aws-cli.html)
 
 **Step 2.** Run the following command from the repo root folder:
 
