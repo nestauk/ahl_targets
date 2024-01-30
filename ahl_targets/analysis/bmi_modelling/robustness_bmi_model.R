@@ -4,6 +4,7 @@ library(bw)
 library(survey)
 library(reshape2)
 library(magrittr)
+library(psych)
 
 ##############################################################################################################################
 ###
@@ -94,8 +95,7 @@ bootstrap_func <- function(over_intake,obese_intake,mobese_intake){
 
 }
 
-# chunk 1
-results_all_1 <- list()
+results_all <- list()
 
 # Set the seed outside the loop to ensure reproducibility
 set.seed(42)
@@ -127,54 +127,54 @@ for (i in 1:num_evaluations) {
   result <- result %>% mutate(pop_intake = intake_change_pop)
 
   # Append the result to the list
-  results_all_1[[i]] <- result
+  results_all[[i]] <- result
 }
 
-result_df_1 <- do.call("rbind", results_all_1)
+result_df <- do.call("rbind", results_all)
 
-# chunk 2
-results_all_2 <- list()
-
-# Set the seed outside the loop to ensure reproducibility
-set.seed(46)
-
-# Number of evaluations
-num_evaluations <- 100
-
-for (i in 1:num_evaluations) {
-  # Generate random values for intake_change_low and intake_change_high
-  intake_change_pop <- runif(1, -51.99,-49.12)
-
-  scaled_intake <- intake_change_pop/0.6424
-
-  over_intake <- 0.95 * scaled_intake
-  obese_intake <- 1.04 * scaled_intake
-  mobese_intake <- 1.22 * scaled_intake
-
-  # Call the overweight_func function
-  result <- bootstrap_func(over_intake, obese_intake, mobese_intake)
-
-  result <- result %>% mutate(pop_intake = intake_change_pop,
-                              over_intake = over_intake,
-                              obese_intake = obese_intake,
-                              mobese_intake = mobese_intake)
-
-  # Append the result to the list
-  results_all_2[[i]] <- result
-}
-
-result_df_2 <- do.call("rbind", results_all_2)
-
-result_df <- rbind(result_df_1, result_df_2)
 
 over_df <- result_df %>% filter(final_bmi_class == "overweight")
 
-ggplot(over_df, aes(x = final_prop)) + geom_histogram(bins = 5)
+mean(over_df$final_prop)
+
+
+sd(over_df$final_prop)
+
+quantile(over_df$final_prop)
+
+
+ggplot(over_df, aes(x = final_prop)) +
+  geom_histogram(bins = 10) +
+  labs(title = "Overweight group",
+       x = "Prevalence in the population") +
+  theme_bw()
 
 obese_df <- result_df %>% filter(final_bmi_class == "obese")
 
-ggplot(obese_df, aes(x = final_prop)) + geom_histogram(bins = 5)
+mean(obese_df$final_prop)
+
+
+sd(obese_df$final_prop)
+
+quantile(obese_df$final_prop)
+
+ggplot(obese_df, aes(x = final_prop)) +
+  geom_histogram(bins = 10) +
+  labs(title = "Obese group",
+       x = "Prevalence in the population") +
+  theme_bw()
 
 mobese_df <- result_df %>% filter(final_bmi_class == "morbidly obese")
 
-ggplot(mobese_df, aes(x = final_prop)) + geom_histogram(bins = 5)
+mean(mobese_df$final_prop)
+
+
+sd(mobese_df$final_prop)
+
+quantile(mobese_df$final_prop)
+
+ggplot(mobese_df, aes(x = final_prop)) +
+  geom_histogram(bins = 5) +
+  labs(title = "Morbidly obese group",
+       x = "Prevalence in the population") +
+  theme_bw()

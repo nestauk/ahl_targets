@@ -11,7 +11,7 @@ if __name__ == "__main__":
     np.random.seed(42)
     random.seed(42)
 
-    num_iterations = 10000
+    num_iterations = 5000
     npm_reduction_values = 3
     unhealthy_sales_change_values = 10.5
     healthy_sales_change_values = 9
@@ -23,6 +23,8 @@ if __name__ == "__main__":
 
     store_weight_npm = su.weighted_npm(store_data)
     store_weight_npm["prod_weight_g"] = store_weight_npm.pipe(su.prod_weight_g)
+
+    unique_prd = store_weight_npm[["product_code", "npm_score"]].drop_duplicates()
 
     # Print the regression table
     regression_df = get_sim_data.regression_df()
