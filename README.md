@@ -1,16 +1,15 @@
 # 💙 Targeting the health of the nation
 
 ## 📋 About this Project
+
 In this project we explored options for how health targets could be effectively implemented and incentivised within the food sector. This work will included examining the current policy landscape, including existing voluntary target programmes and health commitments already made by industry. This will help inform the development of our potential target options, recognising the need to balance impact with feasibility, for both business and government. We modelled the impact of these target options and estimate their effect on daily calories purchased and future population obesity levels. This highlighted which targets would have the greatest impact on reducing obesity. All project outputs are published on the [Nesta website](https://www.nesta.org.uk/project/industry-targets-to-improve-health/).
 
 ## :hammer_and_wrench: Setup
 
 **Step 1.** Install the following components:
+
 - [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/download.html)
-- [gh](https://formulae.brew.sh/formula/gh), GitHub command line tool
 - [direnv](https://formulae.brew.sh/formula/direnv#default), for using environment variables
-- [git-crypt](https://github.com/AGWA/git-crypt/blob/master/INSTALL.md#installing-on-mac-os-x), tool for encryption of sensitive files
-- Install and configure your [AWS Command Line Interface](https://docs.aws.amazon.com/polly/latest/dg/setup-aws-cli.html)
 
 **Step 2.** Run the following command from the repo root folder:
 
@@ -29,7 +28,6 @@ This will configure the development environment:
 ```shell
 $ conda activate ahl_targets
 ```
-
 
 ## :handshake: Contributor guidelines
 
