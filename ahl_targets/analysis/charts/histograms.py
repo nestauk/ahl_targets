@@ -1,4 +1,3 @@
-
 # %%
 
 from ahl_targets.pipeline import model_data
@@ -121,4 +120,3 @@ plt.savefig(
     bbox_inches="tight",
 )
 plt.clf()
-
