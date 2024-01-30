@@ -1,7 +1,7 @@
 ---
-num_iterations: [20]
+num_iterations: [500]
 product_share_reform_values: [0.5]
 product_share_sales_values: [1]
-npm_decrease_values: [1, 2, 3, 4, 5]
-unhealthy_sales_change_values: [2.5, 5, 10] # percentage shift in sales
-healthy_sales_change_values: [2.5, 5, 10] # percentage shift in sales
+npm_decrease_values: [3]
+unhealthy_sales_change_values: [10.5] # percentage shift in sales
+healthy_sales_change_values: [9] # percentage shift in sales

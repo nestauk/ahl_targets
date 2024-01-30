@@ -7,14 +7,19 @@ from ahl_targets import BUCKET_NAME
 
 if __name__ == "__main__":
     store_data = get_data.model_data()
+    reg_data = store_data[
+        ["product_code", "npm_score", "ed", "rst_4_market_sector"]
+    ].drop_duplicates()
 
     coefficients = []
     error = []
     stderror = []
+    lowci = []
+    highci = []
 
     # Iterate over unique categories and run the regression for each subset
-    for category in store_data["rst_4_market_sector"].unique():
-        subset = store_data[store_data["rst_4_market_sector"] == category]
+    for category in reg_data["rst_4_market_sector"].unique():
+        subset = reg_data[reg_data["rst_4_market_sector"] == category]
 
         # Fit the regression model
         X = subset["npm_score"]
@@ -43,6 +48,13 @@ if __name__ == "__main__":
         # Add the R squared to the DataFrame
         error.append({"rst_4_market_sector": category, "R Squared": rsquared})
 
+        # Extract confidence intervals for coefficients
+        low = results.conf_int(alpha=0.05).iloc[1, 0]
+        high = results.conf_int(alpha=0.05).iloc[1, 1]
+
+        lowci.append({"rst_4_market_sector": category, "Low CI": low})
+        highci.append({"rst_4_market_sector": category, "High CI": high})
+
     # Print the coefficients table
     coefficients_df = pd.DataFrame(coefficients)
 
@@ -52,9 +64,17 @@ if __name__ == "__main__":
     # Print the standard error table
     stderror_df = pd.DataFrame(stderror)
 
+    # Print the confidence interval tables
+    lowci_df = pd.DataFrame(lowci)
+    highci_df = pd.DataFrame(highci)
+
     # combine tables
-    combined_df = coefficients_df.merge(stderror_df, on="rst_4_market_sector").merge(
-        error_df, on="rst_4_market_sector"
+    combined_df = (
+        coefficients_df.merge(stderror_df, on="rst_4_market_sector")
+        .merge(error_df, on="rst_4_market_sector")
+        .merge(lowci_df, on="rst_4_market_sector")
+        .merge(highci_df, on="rst_4_market_sector")
+        .drop_duplicates()
     )
 
     # upload to S3
