@@ -28,7 +28,7 @@ bootstrap_func <- function(over_intake,obese_intake,mobese_intake){
 
   df_3 <- df %>%
     filter(bmi >= 25, bmi < 30) %>% #create data set with just overweight people
-    mutate(intake_diff = -over_intake) #create new column for kcal reduction
+    mutate(intake_diff = over_intake) #create new column for kcal reduction
 
   eichange_3 <- t(apply(df_3, 1, function(x) rep(as.numeric(x["intake_diff"]), 365*3))) #apply energy intake change over 3 years
 
@@ -40,7 +40,7 @@ bootstrap_func <- function(over_intake,obese_intake,mobese_intake){
 
   df_4 <- df %>%
     filter(bmi >= 30, bmi < 40) %>%
-    mutate(intake_diff = -obese_intake)
+    mutate(intake_diff = obese_intake)
 
   eichange_4 <- t(apply(df_4, 1, function(x) rep(as.numeric(x["intake_diff"]), 365*3)))
 
@@ -52,7 +52,7 @@ bootstrap_func <- function(over_intake,obese_intake,mobese_intake){
 
   df_5 <- df %>%
     filter(bmi >= 40) %>%
-    mutate(intake_diff = -mobese_intake)
+    mutate(intake_diff = mobese_intake)
 
   eichange_5 <- t(apply(df_5, 1, function(x) rep(as.numeric(x["intake_diff"]), 365*3)))
 
@@ -91,9 +91,11 @@ bootstrap_func <- function(over_intake,obese_intake,mobese_intake){
     mutate(final_bmi_class = factor(final_bmi_class, levels = c("underweight", "normal", "overweight", "obese", "morbidly obese"))) %>%
     rename(final_prop = Freq)
 
-  prop_final
+  return(prop_final)
 
 }
+
+
 
 results_all <- list()
 
@@ -109,13 +111,13 @@ for (i in 1:num_evaluations) {
   # Generate random values for intake_change_low and intake_change_high
   intake_change_pop <- runif(1, -51.99,-49.12)
 
-  scaling_factor <- runif(1, 0.6424*(1-deviation), 0.6424*(1 + deviation))
+  scaling_factor <- runif(1, 0.64240331*(1-deviation), 0.64240331*(1 + deviation))
 
   scaled_intake <- intake_change_pop/scaling_factor
 
-  over_scale <- runif(1, 0.95*(1-deviation), 0.95*(1 + deviation))
-  obese_scale <- runif(1, 1.04*(1-deviation), 1.04*(1 + deviation))
-  mobese_scale <- runif(1, 1.22*(1-deviation), 1.22*(1 + deviation))
+  over_scale <- runif(1, 0.95339*(1-deviation), 0.95339*(1 + deviation))
+  obese_scale <- runif(1, 1.03878*(1-deviation), 1.03878*(1 + deviation))
+  mobese_scale <- runif(1, 1.21504*(1-deviation), 1.21504*(1 + deviation))
 
   over_intake <- over_scale * scaled_intake
   obese_intake <- obese_scale * scaled_intake
@@ -178,3 +180,43 @@ ggplot(mobese_df, aes(x = final_prop)) +
   labs(title = "Morbidly obese group",
        x = "Prevalence in the population") +
   theme_bw()
+
+total_obesity <- result_df %>%
+  filter(final_bmi_class %in% c("morbidly obese", "obese")) %>%
+  group_by(pop_intake) %>%
+  summarise(final_prop = sum(final_prop)) %>%
+  mutate(final_bmi_class = "total_obese")
+
+mean(total_obesity$final_prop)
+
+
+sd(total_obesity$final_prop)
+
+quantile(total_obesity$final_prop)
+
+ggplot(total_obesity, aes(x = final_prop)) +
+  geom_histogram(bins = 5) +
+  labs(title = "Total obese group",
+       x = "Prevalence in the population") +
+  theme_bw()
+
+
+df_regroup <- df %>% mutate(bmi_class = ifelse(bmi_class %in% c("morbidly obese", "obese"), "obese", bmi_class))
+
+svydes <-  svydesign(ids=~df_regroup$psu,
+                     nest = T,
+                     data=df_regroup,
+                     weights=df_regroup$wt_int) #apply survey weights
+
+prop <- prop.table(svytable(~bmi_class, svydes)) %>%
+  as.data.frame() %>%
+  mutate(bmi_class = factor(bmi_class, levels = c("underweight", "normal", "overweight", "obese"))) %>%
+  rename(baseline_prop = Freq)
+
+(mean(total_obesity$final_prop) - prop$baseline_prop[2])/prop$baseline_prop[2]
+
+(round(mean(total_obesity$final_prop)*100 - prop$baseline_prop[2]*100,0))/round(prop$baseline_prop[2]*100,0)
+
+(round(quantile(total_obesity$final_prop)[2]*100 - prop$baseline_prop[2]*100,0))/round(prop$baseline_prop[2]*100,0)
+
+(round(quantile(total_obesity$final_prop)[4]*100 - prop$baseline_prop[2]*100,0))/round(prop$baseline_prop[2]*100,0)
