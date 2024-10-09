@@ -51,7 +51,11 @@ if __name__ == "__main__":
 
     # read data
 
-    store_data = get_data.model_data()
+    # store_data = get_data.model_data()
+
+    store_data = pd.read_csv(
+        PROJECT_DIR / "outputs/model_data_unfiltered.csv"
+    )  # The data with diets specs applied
 
     ########## v2 edit ##########
     from ahl_targets.utils import diets
