@@ -1,6 +1,5 @@
 """
 This is a copy of the original retailer targets script. The difference is that the input data is now built here in `create_diets_input.py` with files taken from the diets repository.
-
 """
 
 import pandas as pd
@@ -45,9 +44,8 @@ if __name__ == "__main__":
     # Merge on NPM score
     npm = get_data.full_npm()
 
-    # FLAG: How are there products with duplicate product code, npm score pairs? This step needs checking (as there are also multiple purchase_id columns!)
     df_npm = df.merge(
-        npm[["purchase_id", "period", "npm_score"]],
+        npm[["purchase_id", "period", "npm_score", "kcal_per_100g"]],
         on=["purchase_id", "period"],
         how="left",
     )
@@ -67,10 +65,6 @@ if __name__ == "__main__":
 
     # #Save df_npm locally
     # df_npm.to_csv(PROJECT_DIR / "outputs/df_npm.csv", index=False)
-
-    # Do we also need to calculate new npm energy density coefficients?
-
-    # Note 0.1% of npm scores are missing. Need to check how these are handled in the model.
 
     ##############################
 
@@ -100,6 +94,13 @@ if __name__ == "__main__":
 
     #############################
 
+    ##v3 edit##
+    # Add some common sense exclusions: volume <20kg /<10L
+    store_data = store_data[
+        (store_data["volume_up"] <= 10) & (store_data["reported_volume"] == "Litres")
+        | (store_data["volume_up"] <= 20)
+    ]
+
     # store_data = get_data.model_data()
     prod_table = get_data.product_metadata()
 
@@ -108,7 +109,7 @@ if __name__ == "__main__":
 
     # Print the coefficients table
     # coefficients_df = get_sim_data.coefficients_df()
-    coefficients_df = pd.read_csv(PROJECT_DIR / "outputs/coefficients_v2.csv")
+    coefficients_df = g2.new_coefficients()
 
     results = []
     results_data = []
@@ -124,6 +125,8 @@ if __name__ == "__main__":
                             npm_cut = store_weight_npm["npm_score"] >= 4
                             high_npm = store_weight_npm[npm_cut].copy()
                             low_npm = store_weight_npm[~npm_cut].copy()
+
+                            # Note there are a few products with NaN npm values that will be assigned to low_npm.
 
                             unique_products = pd.DataFrame(
                                 store_weight_npm[(store_weight_npm["npm_score"] >= 4)][

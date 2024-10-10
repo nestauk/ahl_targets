@@ -9,9 +9,7 @@ from ahl_targets import PROJECT_DIR
 
 
 if __name__ == "__main__":
-    # store_data = get_data.model_data()
-    # store_data = g2.new_model_data() # Need to merge npm onto this
-    store_data = pd.read_csv(PROJECT_DIR / "outputs/outputs/df_npm.csv")
+    store_data = g2.new_model_data()  # Need to merge npm onto this
     reg_data = (
         store_data[["product_code", "npm_score", "ed", "rst_4_market_sector"]]
         .drop_duplicates()

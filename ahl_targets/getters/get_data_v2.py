@@ -1,4 +1,4 @@
-"""Getters for up to date files taken from diets"""
+"""Getters for up to date files taken from diets + new simulation output files"""
 
 # Imports
 from nesta_ds_utils.loading_saving.S3 import download_obj
@@ -23,6 +23,20 @@ def new_model_data() -> pd.DataFrame:
         "in_home/processed/retailer_targets_baseline/testing/baseline_purchase_file_diets_script.parquet",
         download_as="dataframe",
         kwargs_boto={"Config": TransferConfig(io_chunksize=20947892)},
+    )
+
+
+def new_coefficients() -> pd.DataFrame:
+    """Reads the new coefficients file.
+
+    Returns:
+        pd.DataFrame: new coefficients
+    """
+
+    return download_obj(
+        BUCKET_NAME,
+        "in_home/processed/targets/coefficients_v2.csv",
+        download_as="dataframe",
     )
 
 
