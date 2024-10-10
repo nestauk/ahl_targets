@@ -131,7 +131,7 @@ if __name__ == "__main__":
     # Cutting out Jan-Mar data (1)
     # Filter data from April 2021 onwards
     store_data = store_data[
-        pd.to_datetime(store_data["Purchase Date"], format="%d/%m/%Y") >= "2021-04-01"
+        pd.to_datetime(store_data["Purchase Date"], format="%d/%m/%Y") >= "01/04/2021"
     ]
 
     # Local save store data at this point for crashes

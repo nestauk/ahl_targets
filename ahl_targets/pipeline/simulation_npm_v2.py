@@ -13,6 +13,12 @@ Diff: 55.3
 
 The old baseline was 1629.2 calories per person per day.
 
+Results v2:
+This uses the input generated in `pipeline/model_data_diets.py` which should have the same assumptions as the diets work.
+Baseline: 1549
+
+How is it even lower! There seem to be some problems with the file, including a different set of column names coming out of the model_data.py script to those currently in the S3 bucket. Other issues are:
+- The 'Period' and 'Purchase Date' columns do not match, so unsure when the date of purchases are
 
 __________
 Causes for potential concern:
@@ -74,6 +80,10 @@ if __name__ == "__main__":
     )
 
     ##Adjust kcal and volume values to reflect adult intake
+
+    # Temp edit: Volume = volume up, is this right?
+    store_data["volume_up"] = store_data["Volume"].astype(float)
+    store_data["Energy KCal"] = store_data["Energy KCal"].astype(float)
 
     # Set original names to "old"
     store_data = store_data.rename(
