@@ -65,6 +65,9 @@ if __name__ == "__main__":
         }
     )
 
+    # #Save df_npm locally
+    # df_npm.to_csv(PROJECT_DIR / "outputs/df_npm.csv", index=False)
+
     # Do we also need to calculate new npm energy density coefficients?
 
     # Note 0.1% of npm scores are missing. Need to check how these are handled in the model.
@@ -104,7 +107,8 @@ if __name__ == "__main__":
     store_weight_npm["prod_weight_g"] = store_weight_npm.pipe(su.prod_weight_g)
 
     # Print the coefficients table
-    coefficients_df = get_sim_data.coefficients_df()
+    # coefficients_df = get_sim_data.coefficients_df()
+    coefficients_df = pd.read_csv(PROJECT_DIR / "outputs/coefficients_v2.csv")
 
     results = []
     results_data = []
@@ -282,13 +286,21 @@ if __name__ == "__main__":
 
     # Print kcal pp baseline
     logging.info("Kcal pp baseline: {}".format(results_df["kcal_pp_baseline"].mean()))
+    logging.info(
+        "Difference in kcal pp: {}".format(
+            (results_df["kcal_pp_baseline"] - results_df["kcal_pp_new"]).mean()
+        )
+    )
 
     # results_data_df = pd.concat(results_data, ignore_index=True)
 
-    # upload to S3
-    upload_obj(
-        results_df,
-        BUCKET_NAME,
-        "in_home/processed/targets/npm_agg_v3.csv",
-        kwargs_writing={"index": False},
-    )
+    # #Local save
+    # results_df.to_csv(PROJECT_DIR / "outputs/npm_agg_v3.csv", index=False)
+
+    # # upload to S3
+    # upload_obj(
+    #     results_df,
+    #     BUCKET_NAME,
+    #     "in_home/processed/targets/npm_agg_v3.csv",
+    #     kwargs_writing={"index": False},
+    # )
