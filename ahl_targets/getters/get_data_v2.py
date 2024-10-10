@@ -11,6 +11,21 @@ from boto3.s3.transfer import TransferConfig
 
 
 # Functions
+def new_model_data() -> pd.DataFrame:
+    """Reads the new model data file.
+
+    Returns:
+        pd.DataFrame: new model data
+    """
+
+    return download_obj(
+        BUCKET_NAME,
+        "in_home/processed/retailer_targets_baseline/testing/baseline_purchase_file_diets_script.parquet",
+        download_as="dataframe",
+        kwargs_boto={"Config": TransferConfig(io_chunksize=20947892)},
+    )
+
+
 def inhome_purchase_apr_dec():
     """Returns the in-home purchase subset based on project requirements.
     Returns:
