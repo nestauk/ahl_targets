@@ -34,7 +34,16 @@ if __name__ == "__main__":
     # Read in data
 
     orig_data = get_data.model_data()
-    df_npm = pd.read_parquet(f"{PROJECT_DIR}/outputs/data/df_npm_new.parquet")
+    df = g2.new_model_data()
+
+    # Merge on NPM score
+    npm = get_data.full_npm()
+
+    df_npm = df.merge(
+        npm[["purchase_id", "period", "npm_score", "kcal_per_100g"]],
+        on=["purchase_id", "period"],
+        how="left",
+    )
 
     # Ensure unique products IDs
     df_npm["unique_id"] = df_npm["purchase_id"].astype(str) + df_npm["period"].astype(
@@ -47,12 +56,23 @@ if __name__ == "__main__":
     # Update the new data file with an indicator of whether it was in the original analysis
     df_npm["is_in_old"] = df_npm["unique_id"].isin(orig_data["unique_id"])
 
+    # Rename variables the equivalent in the old model
+    df_npm = df_npm.rename(
+        columns={
+            "panel_id": "Panel Id",
+            "gross_up_weight": "Gross Up Weight",
+            "volume": "volume_up",
+            "store_level_3": "store_cat",
+            "energy_kcal": "Energy KCal",
+            "quantity": "Quantity",
+            "spend": "Spend",
+        }
+    )
+
     # Get the same products and check ED and NPM score differences at product level - all matches
 
     store_data_comp = orig_data.merge(
-        df_npm[
-            ["purchase_id", "period", "npm_score", "kcal_per_100g", "old_volume_up"]
-        ],
+        df_npm[["purchase_id", "period", "npm_score", "kcal_per_100g", "volume_up"]],
         on=["purchase_id", "period"],
         how="left",
         suffixes=("", "_new"),
@@ -62,7 +82,7 @@ if __name__ == "__main__":
         store_data_comp["npm_score"] - store_data_comp["npm_score_new"]
     )
     store_data_comp["volume_diff"] = (
-        store_data_comp["volume_up"] - store_data_comp["old_volume_up"]
+        store_data_comp["volume_up"] - store_data_comp["volume_up_new"]
     )
     store_data_comp["ed_diff"] = (
         store_data_comp["ed"] - store_data_comp["kcal_per_100g"]
@@ -111,9 +131,9 @@ if __name__ == "__main__":
     # Therefore, just remove them and check the baseline effect
     logging.info("Removing surprise additions and saving updated file")
 
-    df_npm = df_npm[~df_npm["unique_id"].isin(added_surprise["unique_id"])]
     added_new = added_new[~added_new["unique_id"].isin(added_surprise["unique_id"])]
 
-    df_npm.to_parquet(f"{PROJECT_DIR}/outputs/data/df_npm_new_no_surprise.parquet")
-
-    logging.info(f"New baseline is: {df_npm['weighted_kcal'].sum()/adult_pop/no_days}")
+    added_surprise["unique_id"].to_csv(
+        f"{PROJECT_DIR}/ahl_targets/analysis/change_checks_Oct24/for_s3/surprise_additions.csv",
+        index=False,
+    )
