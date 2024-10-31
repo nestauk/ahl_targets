@@ -11,105 +11,23 @@ from ahl_targets.getters import get_data
 from ahl_targets.getters import simulated_outcomes as get_sim_data
 import yaml
 import logging
+import datetime
 
 from ahl_targets.utils import diets
 from ahl_targets.getters import get_data_v2 as g2
 
 
-if __name__ == "__main__":
-    with open(
-        f"{PROJECT_DIR}/ahl_targets/config/npm_model.yaml",
-        "r",
-    ) as f:
-        modeling_params = yaml.safe_load(f)
-
-    num_iterations = modeling_params["num_iterations"]
-    product_share_reform_values = modeling_params["product_share_reform_values"]
-    product_share_sales_values = modeling_params["product_share_sales_values"]
-    npm_reduction_values = modeling_params["npm_decrease_values"]
-    unhealthy_sales_change_values = modeling_params["unhealthy_sales_change_values"]
-    healthy_sales_change_values = modeling_params["healthy_sales_change_values"]
-
-    # set seed for reproducibility
-
-    np.random.seed(42)
-
-    # read data
-
-    ##########v3 changes##########
-    # Build the new model file
-    # df = pd.read_csv(PROJECT_DIR / "inputs/processed/pur_nut_prod_food.csv")
-    df = g2.new_model_data()
-
-    # Merge on NPM score
-    npm = get_data.full_npm()
-
-    df_npm = df.merge(
-        npm[["purchase_id", "period", "npm_score", "kcal_per_100g"]],
-        on=["purchase_id", "period"],
-        how="left",
-    )
-
-    # Rename variables the equivalent in the old model
-    df_npm = df_npm.rename(
-        columns={
-            "panel_id": "Panel Id",
-            "gross_up_weight": "Gross Up Weight",
-            "volume": "volume_up",
-            "store_level_3": "store_cat",
-            "energy_kcal": "Energy KCal",
-            "quantity": "Quantity",
-            "spend": "Spend",
-        }
-    )
-
-    # #Save df_npm locally
-    # df_npm.to_csv(PROJECT_DIR / "outputs/df_npm.csv", index=False)
-
-    ##############################
-
-    ########## v2 edit ##########
-    # Get adult intake
-    demog_df = g2.get_demographics_data()
-    adult_intake = diets.adult_intake(demog_df)
-
-    # Get total prop intake for each household
-    adult_intake = adult_intake.groupby("Panel Id")["prop_intake"].sum().reset_index()
-
-    # Merge adult intake to store_data
-    store_data = df_npm.merge(
-        adult_intake[["Panel Id", "prop_intake"]], on="Panel Id", how="left"
-    )
-
-    ##Adjust kcal and volume values to reflect adult intake
-
-    # Set original names to "old"
-    store_data = store_data.rename(
-        columns={"Energy KCal": "old_kcal", "volume_up": "old_volume_up"}
-    )
-
-    # Adjust kcal and volume by adult prop intake
-    store_data["Energy KCal"] = store_data["old_kcal"] * store_data["prop_intake"]
-    store_data["volume_up"] = store_data["old_volume_up"] * store_data["prop_intake"]
-
-    #############################
-
-    ##v3 edit##
-    # Add some common sense exclusions: volume <20kg /<10L
-    store_data = store_data[
-        (store_data["volume_up"] <= 10) & (store_data["reported_volume"] == "Litres")
-        | (store_data["volume_up"] <= 20)
-    ]
-
-    # store_data = get_data.model_data()
-    prod_table = get_data.product_metadata()
-
-    store_weight_npm = su.weighted_npm(store_data)
-    store_weight_npm["prod_weight_g"] = store_weight_npm.pipe(su.prod_weight_g)
-
-    # Print the coefficients table
-    # coefficients_df = get_sim_data.coefficients_df()
-    coefficients_df = g2.new_coefficients()
+def simulation_npm(
+    store_weight_npm: pd.DataFrame,
+    num_iterations: list,
+    product_share_reform_values: list,
+    product_share_sales_values: list,
+    npm_reduction_values: list,
+    unhealthy_sales_change_values: list,
+    healthy_sales_change_values: list,
+    coefficients_df: pd.DataFrame,
+    prod_table: pd.DataFrame,
+) -> pd.DataFrame:
 
     results = []
     results_data = []
@@ -223,6 +141,7 @@ if __name__ == "__main__":
                             mean_npm_kg_baseline = (
                                 randomised["kg_w"] * randomised["npm_score"]
                             ).sum()
+
                             mean_npm_kcal_baseline = (
                                 randomised["kcal_w"] * randomised["npm_score"]
                             ).sum()
@@ -284,26 +203,86 @@ if __name__ == "__main__":
                                 )
                             )
 
-    # Create the DataFrame from the list of results
-    results_df = pd.DataFrame(results)
+    return pd.DataFrame(results)
+
+
+if __name__ == "__main__":
+    with open(
+        f"{PROJECT_DIR}/ahl_targets/config/npm_model.yaml",
+        "r",
+    ) as f:
+        modeling_params = yaml.safe_load(f)
+
+    num_iterations = modeling_params["num_iterations"]
+    product_share_reform_values = modeling_params["product_share_reform_values"]
+    product_share_sales_values = modeling_params["product_share_sales_values"]
+    npm_reduction_values = modeling_params["npm_decrease_values"]
+    unhealthy_sales_change_values = modeling_params["unhealthy_sales_change_values"]
+    healthy_sales_change_values = modeling_params["healthy_sales_change_values"]
+
+    # set seed for reproducibility
+
+    # np.random.seed(42)
+
+    # Read in main dataframe
+
+    store_weight_npm = g2.get_agg_data_vol_adjusted()
+
+    logging.info(
+        "kcal pp baseline: {}".format(
+            store_weight_npm["total_kcal"].sum() / 51718632 / 365
+        )
+    )
+    logging.info(
+        "NPM SWA baseline: {}".format(
+            (store_weight_npm["npm_score"] * store_weight_npm["kg_w"]).sum()
+        )
+    )
+
+    # Read in product metadata
+    prod_table = get_data.product_metadata()
+
+    # Get coefficients for relationship between NPM and ED
+    coefficients_df = g2.new_coefficients()
+
+    # Run simulation
+    results_df = simulation_npm(
+        store_weight_npm,
+        num_iterations,
+        product_share_reform_values,
+        product_share_sales_values,
+        npm_reduction_values,
+        unhealthy_sales_change_values,
+        healthy_sales_change_values,
+        coefficients_df,
+        prod_table,
+    )
+
+    kcal_diff = (
+        (results_df["kcal_pp_baseline"] - results_df["kcal_pp_new"]).mean().round(2)
+    )
 
     # Print kcal pp baseline
-    logging.info("Kcal pp baseline: {}".format(results_df["kcal_pp_baseline"].mean()))
+    logging.info("Kcal pp new: {}".format(results_df["kcal_pp_new"].mean()))
+    logging.info("NPM SWA new: {}".format(results_df["mean_npm_kg_new"].mean()))
+
     logging.info(
         "Difference in kcal pp: {}".format(
             (results_df["kcal_pp_baseline"] - results_df["kcal_pp_new"]).mean()
         )
     )
 
-    # results_data_df = pd.concat(results_data, ignore_index=True)
+    save_prompt = input(
+        "Would you like to save and overwrite the existing model on S3? (y/n)"
+    )
 
-    # #Local save
-    # results_df.to_csv(PROJECT_DIR / "outputs/npm_agg_v3.csv", index=False)
+    if save_prompt == "y":
 
-    # # upload to S3
-    # upload_obj(
-    #     results_df,
-    #     BUCKET_NAME,
-    #     "in_home/processed/targets/npm_agg_v3.csv",
-    #     kwargs_writing={"index": False},
-    # )
+        logging.info("Saving the model output to S3")
+
+        upload_obj(
+            results_df,
+            BUCKET_NAME,
+            f"in_home/processed/targets/oct_24_update/model_results_{kcal_diff}.csv",
+            kwargs_writing={"index": False},
+        )

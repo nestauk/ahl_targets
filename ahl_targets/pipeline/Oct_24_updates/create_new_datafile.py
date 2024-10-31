@@ -1,5 +1,5 @@
 """
-This file creates a new data file for the model, which includes the NPM score and adjusts the kcal and volume values to reflect adult intake from the diets work
+This file creates a new data file for the targets model (update October 2024). For information on the updates applied and reasoning refer to the README.
 
 """
 
@@ -25,7 +25,7 @@ import logging
 adult_pop = 51718632
 no_days = 365
 
-# Product categoreis (rst_4_market) added into the new file that weren't in the old file
+# Product categories (rst_4_market) added into the new file that weren't in the old file
 to_keep = [
     "Cooking Oils",
     "Total Ice Cream",
@@ -61,10 +61,10 @@ def custom_function(row):
 
 if __name__ == "__main__":
 
-    logging.info("This script takes about 5 minutes to run")
+    logging.info("This script takes about 10 minutes to run")
     logging.info("Building new data file")
 
-    # Build the new model file
+    # Read in the  new model file (created here: ahl_diets_evidence/pipeline/number_calories_gb_retailer_checks.py)
     df = g2.new_model_data()
 
     # Merge on NPM score
@@ -122,16 +122,10 @@ if __name__ == "__main__":
     df_npm["weighted_kcal"] = df_npm["Energy KCal"] * df_npm["Gross Up Weight"]
 
     # Drop products that weren't in the old file (and aren't intentially added back in)
-    """Analysis in compare_new_to_old_file.py showed that the new file has 35k products that weren't in the original file, the vast majority of which have missing NPM scores
-    All up, these scores account of 0.822 kcal pp per day (reducing baseline from 1907 to 1906 kcal pp per day), so they have been dropped to reconcile to the original analysis.
-    The list of unique id's to drop (imported here) is created in compare_new_to_old_file.py"""
 
-    added_surprise = pd.read_csv(
-        f"{PROJECT_DIR}/ahl_targets/analysis/change_checks_Oct24/for_s3/surprise_additions.csv",
-        dtype="str",
-    )
+    added_surprise = g2.get_products_to_drop()
 
-    df_npm = df_npm[~df_npm["unique_id"].isin(added_surprise["unique_id"])]
+    df_npm = df_npm[~df_npm["unique_id"].isin(added_surprise["unique_id"].astype(str))]
 
     logging.info(
         f"Total kcal in new file: {df_npm['weighted_kcal'].sum() / adult_pop / no_days}"
@@ -148,16 +142,7 @@ if __name__ == "__main__":
 
     print(store_weight_npm["total_kcal"].sum() / adult_pop / no_days)
 
-    logging.info("Saving  the new data file locally for checking")
-
-    # Store locally for further checking
-    df_npm.to_parquet(
-        f"{PROJECT_DIR}/ahl_targets/analysis/change_checks_Oct24/for_s3/df_npm.parquet"
-    )
-
-    store_weight_npm.to_parquet(
-        f"{PROJECT_DIR}/ahl_targets/analysis/change_checks_Oct24/for_s3/store_weight_npm.parquet"
-    )
+    logging.info("Adjusting volume for specific gravity of litres")
 
     # Adjust volume for specific gravity of litres
     df_npm["adjusted_volume"] = df_npm.apply(lambda row: custom_function(row), axis=1)
@@ -170,12 +155,41 @@ if __name__ == "__main__":
     store_weight_npm_adj = su.weighted_npm(df_adj)
     store_weight_npm_adj["prod_weight_g"] = store_weight_npm.pipe(su.prod_weight_g)
 
-    # Save locally for checking
-
-    df_adj.to_parquet(
-        f"{PROJECT_DIR}/ahl_targets/analysis/change_checks_Oct24/for_s3/df_npm_adj.parquet"
+    save_prompt = input(
+        "Would you like to save and overwrite the existing model on S3? (y/n)"
     )
 
-    store_weight_npm_adj.to_parquet(
-        f"{PROJECT_DIR}/ahl_targets/analysis/change_checks_Oct24/for_s3/store_weight_adj.parquet"
-    )
+    if save_prompt == "y":
+
+        logging.info("Saving the new data files to S3")
+        # Save non volume adjusted to S3
+
+        upload_obj(
+            df_npm,
+            BUCKET_NAME,
+            "in_home/processed/targets/oct_24_update/df_npm.parquet",
+            kwargs_writing={"index": False},
+        )
+
+        upload_obj(
+            store_weight_npm,
+            BUCKET_NAME,
+            "in_home/processed/targets/oct_24_update/store_weight.parquet",
+            kwargs_writing={"index": False},
+        )
+
+        # Save volume adjusted to S3
+
+        upload_obj(
+            df_adj,
+            BUCKET_NAME,
+            "in_home/processed/targets/oct_24_update/df_npm_adj.parquet",
+            kwargs_writing={"index": False},
+        )
+
+        upload_obj(
+            store_weight_npm_adj,
+            BUCKET_NAME,
+            "in_home/processed/targets/oct_24_update/store_weight_adj.parquet",
+            kwargs_writing={"index": False},
+        )

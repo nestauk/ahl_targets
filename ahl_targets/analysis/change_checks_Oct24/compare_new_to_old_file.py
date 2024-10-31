@@ -129,11 +129,13 @@ if __name__ == "__main__":
     )
 
     # Therefore, just remove them and check the baseline effect
-    logging.info("Removing surprise additions and saving updated file")
+    logging.info("Saving list of products to remove")
 
     added_new = added_new[~added_new["unique_id"].isin(added_surprise["unique_id"])]
 
-    added_surprise["unique_id"].to_csv(
-        f"{PROJECT_DIR}/ahl_targets/analysis/change_checks_Oct24/for_s3/surprise_additions.csv",
-        index=False,
+    upload_obj(
+        added_surprise,
+        BUCKET_NAME,
+        "in_home/processed/targets/oct_24_update/additions_to_remove.csv",
+        kwargs_writing={"index": False},
     )

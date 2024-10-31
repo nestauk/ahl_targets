@@ -106,3 +106,63 @@ def get_demographics_data():
         "ooh/processed/household_demog_table_v3.csv",
         download_as="dataframe",
     )
+
+
+def get_products_to_drop():
+    """Returns a series of products that were not included in the original analysis (mostly due to missing NPM scores).
+    Returns:
+        pd.Series: unique_ids of products to drop
+    """
+    return download_obj(
+        BUCKET_NAME,
+        "in_home/processed/targets/oct_24_update/additions_to_remove.csv",
+        download_as="dataframe",
+    )
+
+
+def get_clean_model_data():
+    """Returns a series of products that were not included in the original analysis (mostly due to missing NPM scores).
+    Returns:
+        pd.Series: unique_ids of products to drop
+    """
+    return download_obj(
+        BUCKET_NAME,
+        "in_home/processed/targets/oct_24_update/df_npm.parquet",
+        download_as="dataframe",
+    )
+
+
+def get_clean_model_data_vol_adjusted():
+    """Returns a series of products that were not included in the original analysis (mostly due to missing NPM scores).
+    Returns:
+        pd.Series: unique_ids of products to drop
+    """
+    return download_obj(
+        BUCKET_NAME,
+        "in_home/processed/targets/oct_24_update/df_npm_adj.parquet",
+        download_as="dataframe",
+    )
+
+
+def get_agg_data():
+    """Returns a series of products that were not included in the original analysis (mostly due to missing NPM scores).
+    Returns:
+        pd.Series: unique_ids of products to drop
+    """
+    return download_obj(
+        BUCKET_NAME,
+        "in_home/processed/targets/oct_24_update/store_weight.parquet",
+        download_as="dataframe",
+    )
+
+
+def get_agg_data_vol_adjusted():
+    """Returns a series of products that were not included in the original analysis (mostly due to missing NPM scores).
+    Returns:
+        pd.Series: unique_ids of products to drop
+    """
+    return download_obj(
+        BUCKET_NAME,
+        "in_home/processed/targets/oct_24_update/store_weight_adj.parquet",
+        download_as="dataframe",
+    )
