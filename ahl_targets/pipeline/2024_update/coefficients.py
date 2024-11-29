@@ -1,15 +1,14 @@
-"""Re-calculating the coefficients for the new baseline file"""
+"""2024 Update: re-calculating the coefficients for the new baseline file"""
 
-from ahl_targets.getters import get_data, get_data_v2 as g2
+from ahl_targets.getters import get_data_v2 as g2
 import pandas as pd
 import statsmodels.api as sm
 from nesta_ds_utils.loading_saving.S3 import upload_obj
 from ahl_targets import BUCKET_NAME
-from ahl_targets import PROJECT_DIR
 
 
 if __name__ == "__main__":
-    store_data = g2.new_model_data()  # Need to merge npm onto this
+    store_data = g2.df_npm_2024()
     reg_data = (
         store_data[["product_code", "npm_score", "ed", "rst_4_market_sector"]]
         .drop_duplicates()
@@ -82,20 +81,10 @@ if __name__ == "__main__":
         .drop_duplicates()
     )
 
-    # Local save
-    coefficients_df.to_csv(PROJECT_DIR / "outputs/coefficients_v2.csv", index=False)
-
     # upload to S3
     upload_obj(
         coefficients_df,
         BUCKET_NAME,
-        "in_home/processed/targets/coefficients_v2.csv",
-        kwargs_writing={"index": False},
+        "in_home/processed/targets/oct_24_update/coefficients.parquet",
+        kwargs_writing={"compression": "zstd", "engine": "pyarrow"},
     )
-
-    # upload_obj(
-    #     combined_df,
-    #     BUCKET_NAME,
-    #     "in_home/processed/targets/ed_npm_regression_output.csv",
-    #     kwargs_writing={"index": False},
-    # )

@@ -23,7 +23,7 @@ def new_model_data() -> pd.DataFrame:
     )
 
 
-def new_coefficients() -> pd.DataFrame:
+def coefficients_2024() -> pd.DataFrame:
     """Reads the new coefficients file.
 
     Returns:
@@ -32,8 +32,9 @@ def new_coefficients() -> pd.DataFrame:
 
     return download_obj(
         BUCKET_NAME,
-        "in_home/processed/targets/coefficients_v2.csv",
+        "in_home/processed/targets/oct_24_update/coefficients.parquet",
         download_as="dataframe",
+        kwargs_boto={"Config": TransferConfig(io_chunksize=20947892)},
     )
 
 
@@ -130,7 +131,7 @@ def df_npm_2024():
     )
 
 
-def get_agg_data():
+def get_agg_data_2024():
     """Returns the new model data (2024) aggregated by store. *This is the input to the npm_simulation model in* `ahl_targets/pipeline/2024_update/simulation_npm.py`."""
     return download_obj(
         BUCKET_NAME,

@@ -229,7 +229,7 @@ if __name__ == "__main__":
 
     # Read in main dataframe
 
-    store_weight_npm = g2.get_agg_data()
+    store_weight_npm = g2.get_agg_data_2024()
 
     logging.info(
         "kcal pp baseline: {}".format(
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     prod_table = get_data.product_metadata()
 
     # Get coefficients for relationship between NPM and ED
-    coefficients_df = g2.new_coefficients()
+    coefficients_df = g2.coefficients_2024()
 
     # Run simulation
     results_df = simulation_npm(
