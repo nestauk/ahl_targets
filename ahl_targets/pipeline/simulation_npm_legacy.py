@@ -1,3 +1,9 @@
+"""
+#########
+This script is now outdated. Please find updated npm model in `pipeline/2024_updates/ahl_targets/pipeline/2024_updates/simulation_npm.py`.
+#########
+"""
+
 import pandas as pd
 import numpy as np
 from nesta_ds_utils.loading_saving.S3 import upload_obj

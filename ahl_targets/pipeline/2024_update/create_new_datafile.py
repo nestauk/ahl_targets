@@ -128,7 +128,7 @@ if __name__ == "__main__":
     df_npm = df_npm[~df_npm["unique_id"].isin(added_surprise["unique_id"].astype(str))]
 
     logging.info(
-        f"Total kcal in new file: {df_npm['weighted_kcal'].sum() / adult_pop / no_days}"
+        f"Kcal pp per day in new file: {df_npm['weighted_kcal'].sum() / adult_pop / no_days}"
     )
 
     # Calculate weighted NPM dataframe
@@ -153,7 +153,15 @@ if __name__ == "__main__":
     )
 
     store_weight_npm_adj = su.weighted_npm(df_adj)
-    store_weight_npm_adj["prod_weight_g"] = store_weight_npm.pipe(su.prod_weight_g)
+
+    # This is the fix I'm making - but does the volume adjustment need to be applied earlier? How is energy density of the products calculated? This will change I think
+
+    # Yep - we can't just make the change here:
+    # - Volume comes into the calculation in the diets repo
+    # - We need to adjust the volume before we calculate the energy density
+    # - Move the new energy density file here and make a comprehensive readme describing all the changes.
+
+    store_weight_npm_adj["prod_weight_g"] = store_weight_npm_adj.pipe(su.prod_weight_g)
 
     save_prompt = input(
         "Would you like to save and overwrite the existing model on S3? (y/n)"

@@ -1,3 +1,5 @@
+UPDATES IN PROGRESS (27/11/24) - README TO BE UPDATED!
+
 In October 2024 we updated the targets model used to produce retailer targets numbers.
 
 The update changed the input data to:

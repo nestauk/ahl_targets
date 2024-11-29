@@ -1,3 +1,9 @@
+"""
+#########
+This script is now outdated. Please find updated npm model in `pipeline/2024_updates/ahl_targets/pipeline/2024_updates/simulation_npm.py`.
+#########
+"""
+
 from ahl_targets.getters import get_data
 import pandas as pd
 import statsmodels.api as sm
