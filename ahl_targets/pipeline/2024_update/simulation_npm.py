@@ -1,5 +1,12 @@
 """
-This is a copy of the original retailer targets script. The difference is that the input data is now built here in `create_diets_input.py` with files taken from the diets repository.
+### 2024 Update ###
+
+This is a copy of the original npm simulation model (`ahl_targets/pipeline/simulation_npm_legacy.py`) with the following adjustements:
+- The input data has been updated based on following of updated model assumptions.
+- A few additional edits to improve model performance and readability.
+
+See full details of the 2024 update to the npm simulation model in `ahl_targets/pipeline/2024_update/README.md`.
+
 """
 
 import pandas as pd
@@ -8,12 +15,8 @@ from nesta_ds_utils.loading_saving.S3 import upload_obj
 from ahl_targets import BUCKET_NAME, PROJECT_DIR
 from ahl_targets.utils import simulation_utils as su
 from ahl_targets.getters import get_data
-from ahl_targets.getters import simulated_outcomes as get_sim_data
 import yaml
 import logging
-import datetime
-
-from ahl_targets.utils import diets
 from ahl_targets.getters import get_data_v2 as g2
 
 
@@ -226,7 +229,7 @@ if __name__ == "__main__":
 
     # Read in main dataframe
 
-    store_weight_npm = g2.get_agg_data_vol_adjusted()
+    store_weight_npm = g2.get_agg_data()
 
     logging.info(
         "kcal pp baseline: {}".format(

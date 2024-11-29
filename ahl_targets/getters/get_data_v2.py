@@ -1,12 +1,9 @@
-"""Getters for up to date files taken from diets + new simulation output files"""
+"""Getters for files required for the 2024 updates. Some of these are taken from the diets repository: https://github.com/nestauk/ahl_diets_evidence"""
 
 # Imports
 from nesta_ds_utils.loading_saving.S3 import download_obj
 import pandas as pd
 from ahl_targets import BUCKET_NAME
-from ahl_targets import PROJECT_DIR
-import boto3
-from typing import Dict, Any
 from boto3.s3.transfer import TransferConfig
 
 
@@ -20,7 +17,7 @@ def new_model_data() -> pd.DataFrame:
 
     return download_obj(
         BUCKET_NAME,
-        "in_home/processed/retailer_targets_baseline/testing/baseline_purchase_file_diets_script.parquet",
+        "in_home/processed/retailer_targets_baseline/baseline_retailer_targets_input_2024.parquet",
         download_as="dataframe",
         kwargs_boto={"Config": TransferConfig(io_chunksize=20947892)},
     )
@@ -120,49 +117,24 @@ def get_products_to_drop():
     )
 
 
-def get_clean_model_data():
-    """Returns a series of products that were not included in the original analysis (mostly due to missing NPM scores).
+def df_npm_2024():
+    """Returns the new model data (2024) with npm merged on.
     Returns:
-        pd.Series: unique_ids of products to drop
+        pd.DataFrame: new model data
     """
     return download_obj(
         BUCKET_NAME,
         "in_home/processed/targets/oct_24_update/df_npm.parquet",
         download_as="dataframe",
-    )
-
-
-def get_clean_model_data_vol_adjusted():
-    """Returns a series of products that were not included in the original analysis (mostly due to missing NPM scores).
-    Returns:
-        pd.Series: unique_ids of products to drop
-    """
-    return download_obj(
-        BUCKET_NAME,
-        "in_home/processed/targets/oct_24_update/df_npm_adj.parquet",
-        download_as="dataframe",
+        kwargs_boto={"Config": TransferConfig(io_chunksize=20947892)},
     )
 
 
 def get_agg_data():
-    """Returns a series of products that were not included in the original analysis (mostly due to missing NPM scores).
-    Returns:
-        pd.Series: unique_ids of products to drop
-    """
+    """Returns the new model data (2024) aggregated by store. *This is the input to the npm_simulation model in* `ahl_targets/pipeline/2024_update/simulation_npm.py`."""
     return download_obj(
         BUCKET_NAME,
         "in_home/processed/targets/oct_24_update/store_weight.parquet",
         download_as="dataframe",
-    )
-
-
-def get_agg_data_vol_adjusted():
-    """Returns a series of products that were not included in the original analysis (mostly due to missing NPM scores).
-    Returns:
-        pd.Series: unique_ids of products to drop
-    """
-    return download_obj(
-        BUCKET_NAME,
-        "in_home/processed/targets/oct_24_update/store_weight_adj.parquet",
-        download_as="dataframe",
+        kwargs_boto={"Config": TransferConfig(io_chunksize=20947892)},
     )

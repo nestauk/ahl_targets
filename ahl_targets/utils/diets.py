@@ -3,11 +3,11 @@
 import pandas as pd
 import numpy as np
 
+## Functions used to calculate the adult intake conversion factors
+
 
 def ind_size_conv(pan_ind: pd.DataFrame) -> pd.DataFrame:
     """
-    !!! Outdated function !!! - Use ind_size_conv_v2 instead
-
     Using the adult equivilent conversion factor for reccomended daily intake of kcal.
     Creates prop_intake field for each individual, which represents the proportion of the household size
     (using the adult equivilent conversion factor for reccomended daily intake of kcal) that the individual represents.
