@@ -38,7 +38,7 @@ if __name__ == "__main__":
         columns={
             "panel_id": "Panel Id",
             "gross_up_weight": "Gross Up Weight",
-            "volume": "volume_up",
+            "adjusted_volume": "volume_up",
             "store_level_3": "store_cat",
             "energy_kcal": "Energy KCal",
             "quantity": "Quantity",
@@ -75,11 +75,11 @@ if __name__ == "__main__":
 
     #### Update: This section drops a few products that didn't appear in the original file. Going to keep them in for now, not sure why they were dropped.
 
-    # # Drop products that weren't in the old file (and aren't intentially added back in)
+    # Drop products that weren't in the old file (and aren't intentially added back in)
 
-    # added_surprise = g2.get_products_to_drop()
+    added_surprise = g2.get_products_to_drop()
 
-    # df_npm = df_npm[~df_npm["unique_id"].isin(added_surprise["unique_id"].astype(str))]
+    df_npm = df_npm[~df_npm["unique_id"].isin(added_surprise["unique_id"].astype(str))]
 
     logging.info(
         f"Kcal pp per day baseline: {df_npm['weighted_kcal'].sum() / adult_pop / no_days}"
