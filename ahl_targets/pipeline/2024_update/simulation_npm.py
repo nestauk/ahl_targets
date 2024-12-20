@@ -206,22 +206,33 @@ def simulation_npm(
                                 )
                             )
 
-    return pd.DataFrame(results)
+    results_df = pd.DataFrame(results)  # Aggregate results for each iteration
+    results_data_df = pd.concat(results_data, ignore_index=True)  # Detailed results
+
+    return results_df, results_data_df
 
 
 if __name__ == "__main__":
-    with open(
-        f"{PROJECT_DIR}/ahl_targets/config/npm_model.yaml",
-        "r",
-    ) as f:
-        modeling_params = yaml.safe_load(f)
+    # with open(
+    #     f"{PROJECT_DIR}/ahl_targets/config/npm_model.yaml",
+    #     "r",
+    # ) as f:
+    #     modeling_params = yaml.safe_load(f)
 
-    num_iterations = modeling_params["num_iterations"]
-    product_share_reform_values = modeling_params["product_share_reform_values"]
-    product_share_sales_values = modeling_params["product_share_sales_values"]
-    npm_reduction_values = modeling_params["npm_decrease_values"]
-    unhealthy_sales_change_values = modeling_params["unhealthy_sales_change_values"]
-    healthy_sales_change_values = modeling_params["healthy_sales_change_values"]
+    # num_iterations = modeling_params["num_iterations"]
+    # product_share_reform_values = modeling_params["product_share_reform_values"]
+    # product_share_sales_values = modeling_params["product_share_sales_values"]
+    # npm_reduction_values = modeling_params["npm_decrease_values"]
+    # unhealthy_sales_change_values = modeling_params["unhealthy_sales_change_values"]
+    # healthy_sales_change_values = modeling_params["healthy_sales_change_values"]
+
+    # TEMP EDIT: SHARE ACTION PARAMS
+    num_iterations = [500]
+    product_share_reform_values = [0.5]
+    product_share_sales_values = [1]
+    npm_reduction_values = [3]
+    unhealthy_sales_change_values = [0]
+    healthy_sales_change_values = [0]
 
     # set seed for reproducibility
 
@@ -249,7 +260,7 @@ if __name__ == "__main__":
     coefficients_df = g2.coefficients_2024()
 
     # Run simulation
-    results_df = simulation_npm(
+    results_df, results_data_df = simulation_npm(
         store_weight_npm,
         num_iterations,
         product_share_reform_values,
@@ -286,6 +297,14 @@ if __name__ == "__main__":
         upload_obj(
             results_df,
             BUCKET_NAME,
-            f"in_home/processed/targets/oct_24_update/model_results_{kcal_diff}.csv",
+            f"in_home/processed/targets/share_action_custom_plots/model_results_{kcal_diff}.csv",
             kwargs_writing={"index": False},
+        )
+
+        # Only run this step if needed - takes about 30 minutes
+        upload_obj(
+            results_data_df,
+            BUCKET_NAME,
+            f"in_home/processed/targets/share_action_custom_plots/model_results_detailed_data_{kcal_diff}.parquet",
+            kwargs_writing={"compression": "zstd", "engine": "pyarrow"},
         )
