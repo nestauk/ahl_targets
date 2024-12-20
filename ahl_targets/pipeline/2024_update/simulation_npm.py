@@ -1,8 +1,8 @@
 """
 ### 2024 Update ###
 
-This is a copy of the original npm simulation model (`ahl_targets/pipeline/simulation_npm_legacy.py`) with the following adjustements:
-- The input data has been updated based on following of updated model assumptions.
+This is a copy of the original npm simulation model (`ahl_targets/pipeline/simulation_npm_legacy.py`) with the following adjustments:
+- The input data has been updated based on updated model assumptions.
 - A few additional edits to improve model performance and readability.
 
 See full details of the 2024 update to the npm simulation model in `ahl_targets/pipeline/2024_update/README.md`.
@@ -175,6 +175,8 @@ def simulation_npm(
                                 / 52
                             )
 
+                            randomised["iteration"] = _
+
                             # Append the results to the list
                             results.append(
                                 {
@@ -276,7 +278,7 @@ if __name__ == "__main__":
         (results_df["kcal_pp_baseline"] - results_df["kcal_pp_new"]).mean().round(2)
     )
 
-    # Print kcal pp baseline
+    # Print new kcal pp baseline
     logging.info("Kcal pp new: {}".format(results_df["kcal_pp_new"].mean()))
     logging.info("NPM SWA new: {}".format(results_df["mean_npm_kg_new"].mean()))
 

@@ -96,41 +96,41 @@ if __name__ == "__main__":
                             for _ in range(num_iterations[0]):
                                 # generate list of products to reformulate
                                 unique_products_low = unique_hfss_products_low.copy()
-                                unique_products_low[
-                                    "indicator_reform"
-                                ] = np.random.choice(
-                                    [0, 1],
-                                    size=len(unique_products_low),
-                                    p=[
-                                        1 - product_share_reform_low,
-                                        product_share_reform_low,
-                                    ],
+                                unique_products_low["indicator_reform"] = (
+                                    np.random.choice(
+                                        [0, 1],
+                                        size=len(unique_products_low),
+                                        p=[
+                                            1 - product_share_reform_low,
+                                            product_share_reform_low,
+                                        ],
+                                    )
                                 )
 
                                 unique_products_medium = (
                                     unique_hfss_products_medium.copy()
                                 )
-                                unique_products_medium[
-                                    "indicator_reform"
-                                ] = np.random.choice(
-                                    [0, 1],
-                                    size=len(unique_products_medium),
-                                    p=[
-                                        1 - product_share_reform_medium,
-                                        product_share_reform_medium,
-                                    ],
+                                unique_products_medium["indicator_reform"] = (
+                                    np.random.choice(
+                                        [0, 1],
+                                        size=len(unique_products_medium),
+                                        p=[
+                                            1 - product_share_reform_medium,
+                                            product_share_reform_medium,
+                                        ],
+                                    )
                                 )
 
                                 unique_products_high = unique_hfss_products_high.copy()
-                                unique_products_high[
-                                    "indicator_reform"
-                                ] = np.random.choice(
-                                    [0, 1],
-                                    size=len(unique_products_high),
-                                    p=[
-                                        1 - product_share_reform_high,
-                                        product_share_reform_high,
-                                    ],
+                                unique_products_high["indicator_reform"] = (
+                                    np.random.choice(
+                                        [0, 1],
+                                        size=len(unique_products_high),
+                                        p=[
+                                            1 - product_share_reform_high,
+                                            product_share_reform_high,
+                                        ],
+                                    )
                                 )
 
                                 unique_products = pd.concat(
