@@ -43,7 +43,7 @@ def simulation_npm(
                     for sales_change_low in healthy_sales_change_values:
                         # Repeat the code num_iterations times
                         for _ in range(num_iterations[0]):
-                            npm_cut = store_weight_npm["npm_score"] >= 4
+                            npm_cut = store_weight_npm["npm_score"] >= 0
                             high_npm = store_weight_npm[npm_cut].copy()
                             low_npm = store_weight_npm[~npm_cut].copy()
 

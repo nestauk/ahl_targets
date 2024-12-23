@@ -1,7 +1,7 @@
 """
 ### 2024 Update ###
 
-This is a copy of the original npm simulation model (`ahl_targets/pipeline/simulation_hfss_legacy.py`) with the following adjustments:
+This is a copy of the original hfss simulation model (`ahl_targets/pipeline/simulation_hfss_legacy.py`) with the following adjustments:
 - The input data has been updated based on updated model assumptions.
 - A few additional edits to improve model performance and readability.
 
@@ -253,10 +253,10 @@ def simulation_hfss(
                                 ).sum()
 
                                 kcal_pp_baseline = (
-                                    randomised["total_kcal"].sum() / 65121700 / 365
+                                    randomised["total_kcal"].sum() / 51718632 / 365
                                 )
                                 kcal_pp_new = (
-                                    randomised["new_kcal_tot"].sum() / 65121700 / 365
+                                    randomised["new_kcal_tot"].sum() / 51718632 / 365
                                 )
 
                                 total_spend_baseline = (
@@ -340,9 +340,9 @@ if __name__ == "__main__":
 
     # TEMP EDIT: SHARE ACTION PARAMS (reformulation only)
     num_iterations = [100]
-    product_share_reform_values_low = [0.7]
-    product_share_reform_values_medium = [0.4]
-    product_share_reform_values_high = [0.1]
+    product_share_reform_values_low = [1]
+    product_share_reform_values_medium = [0.35]
+    product_share_reform_values_high = [0]
     hfss_high_sales_change_values = [0]  # Set sales shifts to 0
     hfss_low_sales_change_values = [0]
     product_share_sale_values = [1]
