@@ -403,6 +403,47 @@ if __name__ == "__main__":
         )
     )
 
+    # Extra analysis needed for blog:
+    # 1. How many products are reformulated?
+    reformulated_products = (
+        results_data_df[results_data_df["indicator_reform"] == 1]
+        .groupby("iteration")
+        .product_code.nunique()
+    )  # Average number of reformulated products
+    total_products = results_data_df.groupby(
+        "iteration"
+    ).product_code.nunique()  # Average number of total products (avg unnecessary but just to be consistent)
+    reformulated_percentage = (reformulated_products / total_products).mean()
+
+    logging.info(
+        "Prct of products that are reformulated: {}".format(reformulated_percentage)
+    )  # ~18% of products are reformulated on average.
+    # N.B. This feels slightly weird (calculating the % of _unique products_ that are reformulated), but that's what's refered to in the product_share_reform_values_x parameters.
+
+    # 2. What proportion of products with a (converted) NPM score of (70) 0 or (below) above are reformulated?
+    total_products_below_70 = (
+        results_data_df[results_data_df["npm_score"] >= 0]
+        .groupby("iteration")
+        .product_code.nunique()
+    )
+    reformulated_percentage_below_70 = (
+        reformulated_products / total_products_below_70
+    ).mean()  # ~25% of products with a NPM score of 0 or below are reformulated on average.
+
+    # 3. What is the avg difference in NPM for reformulated products?
+    avg_npm_diff_reformulated = (
+        results_data_df[results_data_df["indicator_reform"] == 1]
+        .groupby("iteration")
+        .apply(lambda x: (x["new_npm"] - x["npm_score"]).mean())
+        .mean()
+    )
+
+    logging.info(
+        "Avg difference in converted NPM for reformulated products: {}".format(
+            -2 * avg_npm_diff_reformulated
+        )
+    )  # ~11 absolute NPM difference
+
     save_prompt = input(
         "Would you like to save and overwrite the existing model on S3? (y/n)"
     )

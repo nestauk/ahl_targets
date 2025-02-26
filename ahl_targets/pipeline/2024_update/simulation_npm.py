@@ -50,7 +50,7 @@ def simulation_npm(
                             # Note there are a few products with NaN npm values that will be assigned to low_npm.
 
                             unique_products = pd.DataFrame(
-                                store_weight_npm[(store_weight_npm["npm_score"] >= 4)][
+                                store_weight_npm[(store_weight_npm["npm_score"] >= 0)][
                                     "product_code"
                                 ].unique(),
                                 columns=["product_code"],
@@ -232,7 +232,7 @@ if __name__ == "__main__":
     num_iterations = [500]
     product_share_reform_values = [0.5]
     product_share_sales_values = [1]
-    npm_reduction_values = [3]
+    npm_reduction_values = [2]
     unhealthy_sales_change_values = [0]
     healthy_sales_change_values = [0]
 
