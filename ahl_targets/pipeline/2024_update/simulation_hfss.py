@@ -186,8 +186,6 @@ def simulation_hfss(
                                     how="left",
                                 )
 
-                                ### FLAG: This step seems wrong to me - surely it should just be coefficient * 3 rather than coefficient * (npm_score - 3)??
-
                                 randomised["ed_pred"] = np.where(
                                     randomised["indicator_reform"] == 1,
                                     randomised["ed"]
@@ -341,12 +339,12 @@ if __name__ == "__main__":
     # TEMP EDIT: SHARE ACTION PARAMS (reformulation only)
     num_iterations = [100]
     product_share_reform_values_low = [1]
-    product_share_reform_values_medium = [0.35]
+    product_share_reform_values_medium = [0]
     product_share_reform_values_high = [0]
     hfss_high_sales_change_values = [0]  # Set sales shifts to 0
     hfss_low_sales_change_values = [0]
     product_share_sale_values = [1]
-    hfss_cutoff = [8, 15, 20]
+    hfss_cutoff = [12, 15, 20]
 
     # Read in data
     # Read in main dataframe
@@ -417,7 +415,7 @@ if __name__ == "__main__":
 
     logging.info(
         "Prct of products that are reformulated: {}".format(reformulated_percentage)
-    )  # ~18% of products are reformulated on average.
+    )  # ~21% of products are reformulated on average.
     # N.B. This feels slightly weird (calculating the % of _unique products_ that are reformulated), but that's what's refered to in the product_share_reform_values_x parameters.
 
     # 2. What proportion of products with a (converted) NPM score of (70) 0 or (below) above are reformulated?
@@ -428,7 +426,7 @@ if __name__ == "__main__":
     )
     reformulated_percentage_below_70 = (
         reformulated_products / total_products_below_70
-    ).mean()  # ~25% of products with a NPM score of 0 or below are reformulated on average.
+    ).mean()  # ~30% of products with a NPM score of 0 or below are reformulated on average.
 
     # 3. What is the avg difference in NPM for reformulated products?
     avg_npm_diff_reformulated = (
@@ -455,7 +453,7 @@ if __name__ == "__main__":
         upload_obj(
             results_df,
             BUCKET_NAME,
-            f"in_home/processed/targets/share_action_custom_plots/hfss_model_results_{kcal_diff}.csv",
+            f"in_home/processed/targets/share_action_custom_plots/feb/hfss_model_results_{kcal_diff}.csv",
             kwargs_writing={"index": False},
         )
 
@@ -463,6 +461,6 @@ if __name__ == "__main__":
         upload_obj(
             results_data_df,
             BUCKET_NAME,
-            f"in_home/processed/targets/share_action_custom_plots/hfss_model_results_detailed_data_{kcal_diff}.parquet",
+            f"in_home/processed/targets/share_action_custom_plots/feb/hfss_model_results_detailed_data_{kcal_diff}.parquet",
             kwargs_writing={"compression": "zstd", "engine": "pyarrow"},
         )

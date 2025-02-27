@@ -53,6 +53,7 @@ def plot_weighted_sales_vs_converted_npm(
     bw_adjust=1,
     hfss_cutoff=62,
     zero_range=False,
+    x_values_for_flourish=[],
 ):
     # Initialise plot
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -83,6 +84,20 @@ def plot_weighted_sales_vs_converted_npm(
     else:
         # Plot the kdensity plot
         sns.kdeplot(data=df, x=x, weights=weights, ax=ax, bw_adjust=bw_adjust)
+
+    ## Edit to get extra values needed for the flourish plot
+    if x_values_for_flourish:
+        # Create a kde plot
+        kde = sns.kdeplot(data=df, x=x, weights=weights, ax=ax, bw_adjust=bw_adjust)
+
+        # Extract the KDE values and positions
+        line = ax.get_lines()[0]
+        x_data, y_data = line.get_data()
+
+        # Interpolate y values for given new_x_values
+        interpolated_y = np.interp(x_values_for_flourish, x_data, y_data)
+
+        return interpolated_y
 
     # Configure axes
     ax.set_xlim(left=0)
@@ -154,4 +169,40 @@ plot_weighted_sales_vs_converted_npm(
     weights="kg_w_new",
     bw_adjust=0.8,
     zero_range=True,
+)
+
+## Get extra values for flourish plot
+x_values_for_flourish = [
+    41.60192069506300,
+    42.697932443942500,
+    43.245938318382300,
+    43.793944192822100,
+    44.34195006726190,
+    44.88995594170170,
+    45.43796181614140,
+    45.98596769058120,
+    46.533973565021,
+    47.08197943946080,
+    47.62998531390060,
+    48.17799118834030,
+    48.72599706278010,
+    49.27400293721990,
+    49.82200881165970,
+    50.37001468609950,
+    50.91802056053920,
+    51.466026434979000,
+    52.014032309418800,
+    52.562038183858600,
+    53.11004405829840,
+    53.65804993273810,
+]
+
+interpolated_y = plot_weighted_sales_vs_converted_npm(
+    hfss_df,
+    title="Distribution of converted NPM score by weighted sales after hfss model simulation",
+    x="new_converted_npm",
+    weights="kg_w_new",
+    bw_adjust=0.8,
+    zero_range=False,
+    x_values_for_flourish=x_values_for_flourish,
 )

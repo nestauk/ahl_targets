@@ -299,7 +299,7 @@ if __name__ == "__main__":
         upload_obj(
             results_df,
             BUCKET_NAME,
-            f"in_home/processed/targets/share_action_custom_plots/model_results_{kcal_diff}.csv",
+            f"in_home/processed/targets/share_action_custom_plots/feb/model_results_{kcal_diff}.csv",
             kwargs_writing={"index": False},
         )
 
@@ -307,6 +307,6 @@ if __name__ == "__main__":
         upload_obj(
             results_data_df,
             BUCKET_NAME,
-            f"in_home/processed/targets/share_action_custom_plots/model_results_detailed_data_{kcal_diff}.parquet",
+            f"in_home/processed/targets/share_action_custom_plots/feb/model_results_detailed_data_{kcal_diff}.parquet",
             kwargs_writing={"compression": "zstd", "engine": "pyarrow"},
         )
