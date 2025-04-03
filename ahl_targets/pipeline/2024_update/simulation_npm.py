@@ -134,6 +134,8 @@ def simulation_npm(
                                 / randomised["new_total_kg"].sum()
                             )
 
+                            randomised["iteration"] = _
+
                             mean_npm_kg_new = (
                                 randomised["kg_w_new"] * randomised["new_npm"]
                             ).sum()
@@ -206,7 +208,10 @@ def simulation_npm(
                                 )
                             )
 
-    return pd.DataFrame(results)
+    results_df = pd.DataFrame(results)  # Aggregate results for each iteration
+    results_data_df = pd.concat(results_data, ignore_index=True)  # Detailed results
+
+    return results_df, results_data_df
 
 
 if __name__ == "__main__":
@@ -249,7 +254,7 @@ if __name__ == "__main__":
     coefficients_df = g2.coefficients_2024()
 
     # Run simulation
-    results_df = simulation_npm(
+    results_df, results_data_df = simulation_npm(
         store_weight_npm,
         num_iterations,
         product_share_reform_values,
@@ -272,6 +277,30 @@ if __name__ == "__main__":
     logging.info(
         "Difference in kcal pp: {}".format(
             (results_df["kcal_pp_baseline"] - results_df["kcal_pp_new"]).mean()
+        )
+    )
+
+    # Additional analysis: What proportion of products are reformulated?
+    # i) By calories
+
+    # Proportion of products reformulated by calories (i.e., proportion of calories reformulated)
+    avg_kcal_reform = results_data_df.groupby("iteration").apply(
+        lambda x: (x["indicator_reform"] * x["total_kcal"]).sum()
+        / (x["total_kcal"].sum())
+    )
+    logging.info(
+        "Proportion of products reformulated by kcal: {}".format(avg_kcal_reform.mean())
+    )
+
+    # ii) By volume
+
+    # Proportion of products reformulated by weight
+    avg_weight_reform = results_data_df.groupby("iteration").apply(
+        lambda x: (x["indicator_reform"] * x["total_kg"]).sum() / (x["total_kg"].sum())
+    )
+    logging.info(
+        "Proportion of products reformulated by weight: {}".format(
+            avg_weight_reform.mean()
         )
     )
 
