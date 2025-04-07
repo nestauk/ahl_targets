@@ -84,3 +84,14 @@ The natural metrics for quantfying the impact of the changes above is through th
 The table below shows the impact of each of these updated steps (cumulatively):
 
 To add - a table with the original output, and then each change made and the effect leading to the new output.
+
+## Detail: How do we arrive at a 1907kcal per person per day baseline, when the DSotN figure is 2393kcal?
+
+The underlying data undergoes a series of transformations to meet the needs of this project.
+
+1. Jan-March is reintroduced. The retailer targets model is run on the whole year, whereas the diets figure is calculated from just the Apr-Dec subset.
+2. Stores that are not in scope are removed. The retailer targets model is just run on purchases from the 11 largest retailers, whereas the diets figure is calculated from all in-home purchases.
+3. Drinks are removed. The retailer targets model is just run on food products.
+4. Unphysical products (data quality errors) are removed. These are those with an energy density >900 and those with a volume of 0.
+
+N.B A good way to understand this is to run [this script](https://github.com/nestauk/ahl_diets_evidence/blob/45_targets_data/ahl_diets_evidence/pipeline/number_calories_gb_retailer_checks.py) in the diets repository which performs the transformation.
