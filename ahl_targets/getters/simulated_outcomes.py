@@ -2,6 +2,7 @@ from ahl_targets.utils.io import load_s3_data
 from ahl_targets.utils.io import load_with_encoding
 from ahl_targets import PROJECT_DIR, BUCKET_NAME
 from nesta_ds_utils.loading_saving.S3 import download_obj
+from boto3.s3.transfer import TransferConfig
 
 import pandas as pd
 
@@ -15,14 +16,21 @@ def energy_density_agg() -> pd.DataFrame:
     )
 
 
-def npm_agg() -> pd.DataFrame:
+def npm_agg(detailed=False) -> pd.DataFrame:
     """ """
-
-    return download_obj(
-        BUCKET_NAME,
-        "in_home/processed/targets/npm_agg.csv",
-        download_as="dataframe",
-    )
+    if detailed:
+        return download_obj(
+            BUCKET_NAME,
+            "in_home/processed/targets/npm_agg_detailed.parquet",
+            download_as="dataframe",
+            kwargs_boto={"Config": TransferConfig(io_chunksize=20947892)},
+        )
+    else:
+        return download_obj(
+            BUCKET_NAME,
+            "in_home/processed/targets/npm_agg.csv",
+            download_as="dataframe",
+        )
 
 
 def coefficients_df() -> pd.DataFrame:

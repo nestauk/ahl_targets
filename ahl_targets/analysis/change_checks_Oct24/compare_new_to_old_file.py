@@ -139,3 +139,5 @@ if __name__ == "__main__":
         "in_home/processed/targets/oct_24_update/additions_to_remove.csv",
         kwargs_writing={"index": False},
     )
+
+    ### NB 2025: This 'added_surprise' file should NOT be reincluded as the products either 1) have missing NPM scores or 2) have a quantity of 0. Concerningly, this does not equate to an `energy_kcal_weighted` of 0, so important to remove (although the effect is negligible)

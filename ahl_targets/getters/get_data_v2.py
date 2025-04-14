@@ -139,3 +139,47 @@ def get_agg_data_2024():
         download_as="dataframe",
         kwargs_boto={"Config": TransferConfig(io_chunksize=20947892)},
     )
+
+
+def model_results(detailed: bool = False):
+    """Returns the model results file."""
+    if detailed:
+        return download_obj(
+            BUCKET_NAME,
+            "in_home/processed/targets/oct_24_update/model_results_detailed.parquet",
+            download_as="dataframe",
+            kwargs_boto={"Config": TransferConfig(io_chunksize=20947892)},
+        )
+
+    # Default to the aggregated model results
+    else:
+        return download_obj(
+            BUCKET_NAME,
+            "in_home/processed/targets/oct_24_update/model_results.parquet",
+            download_as="dataframe",
+            kwargs_boto={"Config": TransferConfig(io_chunksize=20947892)},
+        )
+
+
+def get_swa_by_store(old: bool = False):
+    """
+    Get the sales-weighted average NPM by store for the results of the NPM simulation.
+    Args:
+        old (bool): If True, get the old model results. Defaults to False - the results of the 2024 update.
+    Returns:
+        pd.DataFrame: Sales-weighted average NPM by store.
+    """
+    if old:
+        return download_obj(
+            BUCKET_NAME,
+            "in_home/processed/targets/oct_24_update/swa_by_store_old.csv",
+            download_as="dataframe",
+        )
+
+    # Default to the new model results
+    else:
+        return download_obj(
+            BUCKET_NAME,
+            "in_home/processed/targets/oct_24_update/swa_by_store_new.csv",
+            download_as="dataframe",
+        )

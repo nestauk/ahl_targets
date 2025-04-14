@@ -73,14 +73,6 @@ if __name__ == "__main__":
     df_npm["volume_up"] = df_npm["old_volume_up"] * df_npm["prop_intake"]
     df_npm["weighted_kcal"] = df_npm["Energy KCal"] * df_npm["Gross Up Weight"]
 
-    #### Update: This section drops a few products that didn't appear in the original file. Going to keep them in for now, not sure why they were dropped.
-
-    # Drop products that weren't in the old file (and aren't intentially added back in)
-
-    added_surprise = g2.get_products_to_drop()
-
-    df_npm = df_npm[~df_npm["unique_id"].isin(added_surprise["unique_id"].astype(str))]
-
     logging.info(
         f"Kcal pp per day baseline: {df_npm['weighted_kcal'].sum() / adult_pop / no_days}"
     )
@@ -90,6 +82,9 @@ if __name__ == "__main__":
 
     # Load product data
     prod_table = get_data.product_metadata()
+
+    # Remove NaN NPM values
+    df_npm = df_npm[df_npm["npm_score"].notna()].reset_index(drop=True)
 
     # Calculate weighted npm for each store
     store_weight_npm = su.weighted_npm(df_npm)

@@ -134,6 +134,8 @@ def simulation_npm(
                                 / randomised["new_total_kg"].sum()
                             )
 
+                            randomised["iter"] = _
+
                             mean_npm_kg_new = (
                                 randomised["kg_w_new"] * randomised["new_npm"]
                             ).sum()
@@ -206,7 +208,10 @@ def simulation_npm(
                                 )
                             )
 
-    return pd.DataFrame(results)
+    results_df = pd.DataFrame(results)  # Aggregate results for each iteration
+    results_data_df = pd.concat(results_data, ignore_index=True)  # Detailed results
+
+    return results_df, results_data_df
 
 
 if __name__ == "__main__":
@@ -249,7 +254,7 @@ if __name__ == "__main__":
     coefficients_df = g2.coefficients_2024()
 
     # Run simulation
-    results_df = simulation_npm(
+    results_df, results_data_df = simulation_npm(
         store_weight_npm,
         num_iterations,
         product_share_reform_values,
@@ -276,7 +281,7 @@ if __name__ == "__main__":
     )
 
     save_prompt = input(
-        "Would you like to save and overwrite the existing model on S3? (y/n)"
+        "Would you like to save and overwrite the existing model on S3? (y/n) "
     )
 
     if save_prompt == "y":
@@ -286,6 +291,14 @@ if __name__ == "__main__":
         upload_obj(
             results_df,
             BUCKET_NAME,
-            f"in_home/processed/targets/oct_24_update/model_results_{kcal_diff}.csv",
-            kwargs_writing={"index": False},
+            f"in_home/processed/targets/oct_24_update/model_results.parquet",
+            kwargs_writing={"compression": "zstd", "engine": "pyarrow"},
+        )
+
+        # Uploading detailed output
+        upload_obj(
+            results_data_df,
+            BUCKET_NAME,
+            f"in_home/processed/targets/oct_24_update/model_results_detailed.parquet",
+            kwargs_writing={"compression": "zstd", "engine": "pyarrow"},
         )

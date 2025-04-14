@@ -143,6 +143,8 @@ if __name__ == "__main__":
                                 / randomised["new_total_kg"].sum()
                             )
 
+                            randomised["iter"] = _
+
                             mean_npm_kg_new = (
                                 randomised["kg_w_new"] * randomised["new_npm"]
                             ).sum()
@@ -225,4 +227,16 @@ if __name__ == "__main__":
         BUCKET_NAME,
         "in_home/processed/targets/npm_agg.csv",
         kwargs_writing={"index": False},
+    )
+
+    ## Addition: Save the detailed results to S3
+    upload_obj(
+        results_data_df,
+        BUCKET_NAME,
+        "in_home/processed/targets/npm_agg_detailed.parquet",
+        kwargs_writing={
+            "index": False,
+            "compression": "zstd",
+            "engine": "pyarrow",
+        },
     )
