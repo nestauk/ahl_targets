@@ -178,14 +178,21 @@ if __name__ == "__main__":
 
     # Merge on prod
     new_products = new_products.merge(
-        prod[["product_code", "product_long_description", "rst_4_market_sector"]],
+        prod[
+            [
+                "product_code",
+                "product_long_description",
+                "rst_4_market",
+                "rst_4_market_sector",
+            ]
+        ],
         on="product_code",
         how="left",
     )
 
     # For each store, aggregate the % of total_kg in each market sector
     new_product_categories_share = (
-        new_products.groupby(["store_cat", "rst_4_market_sector"])["total_kg"]
+        new_products.groupby(["store_cat", "rst_4_market"])["total_kg"]
         .sum()
         .groupby(level=0, group_keys=False)
         .apply(lambda x: x / x.sum())
@@ -199,4 +206,8 @@ if __name__ == "__main__":
     # Insights:
     # - As expected - the swa of the new products is *much* higher. It is unsurprising they significantly increase the baseline NPM.
     # - Visually inspecting the products: The majority are oils/ice creams as expected.
-    # - Looking at the categories, ice cream is particularly impactful here. 48% of the reincluded volume in co-up is "frozen confectionery", and 75% in Iceland!
+    # - Looking at the categories, ice cream is particularly impactful here. 48% of the re-included volume in co-up is "Total Ice Cream", and 75% in Iceland!
+
+    # Conc: No unexpected results on SWA NPM given the re-inclusion of high NPM products. Current hypothesis: this is driving the increased kcal reduction in the new model.
+
+    ############
