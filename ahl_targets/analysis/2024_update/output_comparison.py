@@ -81,12 +81,8 @@ if __name__ == "__main__":
 
     # i) Differences in swa_npm by store
     logging.info("Loading swa by store data")  # Calculated in swa_by_store.py
-    # new_swa_by_store = g2.get_swa_by_store()
-    # old_swa_by_store = g2.get_swa_by_store(old=True)
-
-    # Temp: use local data
-    new_swa_by_store = pd.read_csv(PROJECT_DIR / "outputs/new_swa_by_store.csv")
-    old_swa_by_store = pd.read_csv(PROJECT_DIR / "outputs/old_swa_by_store.csv")
+    new_swa_by_store = g2.get_swa_by_store()
+    old_swa_by_store = g2.get_swa_by_store(old=True)
 
     # Display the magnitude of npm reduction pre and post-simulation
     new_swa_by_store["npm_reduction"] = (
@@ -211,3 +207,91 @@ if __name__ == "__main__":
     # Conc: No unexpected results on SWA NPM given the re-inclusion of high NPM products. Current hypothesis: this is driving the increased kcal reduction in the new model.
 
     ############
+
+    # ii) Differences in regression coefficients by category
+    # Load the regression coefficients
+    logging.info("Loading regression coefficients")
+    new_rc = g2.coefficients_2024()
+    old_rc = so.coefficients_df()
+
+    # Merge to compare
+    rc = new_rc.merge(
+        old_rc,
+        on="rst_4_market_sector",
+        how="outer",
+        suffixes=("", "_old"),
+    )
+
+    # Calculate the difference
+    rc["difference"] = abs(rc["Coefficient"] - rc["Coefficient_old"])
+
+    # Log results
+    logging.info("Regression coefficients")
+    logging.info(rc)
+
+    # Insights:
+    # - The only difference >1 is "Savoury Home Cooking" which previously didn't include cooking oils and now does. This has a massive effect: 16.9 vs 6.3.
+    # - Despite this, if we run the model with the new coefficients, but setting "Savoury Home Cooking" back to it's original value, we still get a calorie reduction of 71. So the regression coefficients are not the sole factor driving the difference.
+
+    # Let's look at the share of products in "Savoury Home Cooking" before and after the data update. I suspect cooking oils is a very large share of this category.
+    sav_home_cooking_prods = prod[
+        prod["rst_4_market_sector"] == "Savoury Home Cooking"
+    ].product_code
+
+    pct_share_sav_home_cooking = (
+        new_model_data[
+            new_model_data["product_code"].isin(sav_home_cooking_prods)
+        ].total_kg.sum()
+        / new_model_data.total_kg.sum()
+    )
+    logging.info(f"New share of Savoury Home Cooking: {pct_share_sav_home_cooking}")
+
+    pct_share_sav_home_cooking_old = (
+        old_model_data[
+            old_model_data["product_code"].isin(sav_home_cooking_prods)
+        ].total_kg.sum()
+        / old_model_data.total_kg.sum()
+    )
+    logging.info(f"Old share of Savoury Home Cooking: {pct_share_sav_home_cooking_old}")
+
+    # 3.3% vs 2.6% - a big change but still smaller than I would have expected. Let's do this for all categories.
+
+    category_shares = []
+
+    for cat in rc.rst_4_market_sector.unique():
+        cat_prods = prod[prod["rst_4_market_sector"] == cat].product_code
+        pct_share_cat = (
+            new_model_data[
+                new_model_data["product_code"].isin(cat_prods)
+            ].total_kg.sum()
+            / new_model_data.total_kg.sum()
+        )
+        pct_share_cat_old = (
+            old_model_data[
+                old_model_data["product_code"].isin(cat_prods)
+            ].total_kg.sum()
+            / old_model_data.total_kg.sum()
+        )
+
+        category_shares.append(
+            {
+                "category": cat,
+                "new_share": pct_share_cat,
+                "old_share": pct_share_cat_old,
+            }
+        )
+
+    category_shares_df = pd.DataFrame(category_shares)
+
+    # Add difference
+    category_shares_df["difference"] = (
+        category_shares_df["new_share"] - category_shares_df["old_share"]
+    )
+
+    # Log the dataframe
+    logging.info("Category shares comparison")
+    logging.info(category_shares_df)
+
+    # While small, savoury home cooking has the largest change in total share: 0.7% increase.
+
+    # Conc: While there is a large difference on the regression coefficient of "Savoury Home Cooking", the share of products in this category is not large enough to explain the difference in kcal reduction.
