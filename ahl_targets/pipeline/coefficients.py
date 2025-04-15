@@ -1,4 +1,6 @@
-from ahl_targets.getters import get_data
+"""2024 Update: re-calculating the coefficients for the new baseline file"""
+
+from ahl_targets.getters import get_data_v2 as g2
 import pandas as pd
 import statsmodels.api as sm
 from nesta_ds_utils.loading_saving.S3 import upload_obj
@@ -6,10 +8,12 @@ from ahl_targets import BUCKET_NAME
 
 
 if __name__ == "__main__":
-    store_data = get_data.model_data()
-    reg_data = store_data[
-        ["product_code", "npm_score", "ed", "rst_4_market_sector"]
-    ].drop_duplicates()
+    store_data = g2.df_npm_2024()
+    reg_data = (
+        store_data[["product_code", "npm_score", "ed", "rst_4_market_sector"]]
+        .drop_duplicates()
+        .dropna()
+    )
 
     coefficients = []
     error = []
@@ -81,13 +85,6 @@ if __name__ == "__main__":
     upload_obj(
         coefficients_df,
         BUCKET_NAME,
-        "in_home/processed/targets/coefficients.csv",
-        kwargs_writing={"index": False},
-    )
-
-    upload_obj(
-        combined_df,
-        BUCKET_NAME,
-        "in_home/processed/targets/ed_npm_regression_output.csv",
-        kwargs_writing={"index": False},
+        "in_home/processed/targets/oct_24_update/coefficients.parquet",
+        kwargs_writing={"compression": "zstd", "engine": "pyarrow"},
     )
