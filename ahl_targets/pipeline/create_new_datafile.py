@@ -1,5 +1,5 @@
 """
-2024 Update: This script generates the new input data file for the retailer targets model. For detailed information on the updates applied and reasoning refer to the README: `ahl_targets/pipeline/2024_update/README.md`.
+2024 Update: This script generates the new input data file for the retailer targets model. For detailed information on the updates applied and reasoning refer to the README: `ahl_targets/pipeline/README.md`.
 """
 
 from nesta_ds_utils.loading_saving.S3 import upload_obj
