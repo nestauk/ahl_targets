@@ -295,3 +295,10 @@ if __name__ == "__main__":
     # While small, savoury home cooking has the largest change in total share: 0.7% increase.
 
     # Conc: While there is a large difference on the regression coefficient of "Savoury Home Cooking", the share of products in this category is not large enough to explain the difference in kcal reduction.
+
+    ############
+    # iii) The difference in %s of products that are reformulated/subject to a sales shift in each model
+
+    # N.B I think this is likely to be the big difference - as there is a greater % of HFSS products, a greater number of products get selected for reformulation/sales shift, leading to the greater reduction in kcal.
+
+    # See `ahl_targets/analysis/2024_update/proportion_prods_impacted.py` for the analysis of this.

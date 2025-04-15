@@ -41,12 +41,6 @@ if __name__ == "__main__":
         .drop(columns="iter")
     )
 
-    # Save to csv
-    new_swa_by_store.to_csv(
-        PROJECT_DIR / "outputs/new_swa_by_store.csv",
-        index=False,
-    )
-
     # Upload to S3
     logging.info("Uploading new swa by store to S3")
     upload_obj(
