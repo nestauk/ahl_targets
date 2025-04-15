@@ -3,7 +3,7 @@
 
 This is a copy of the original npm simulation model (`ahl_targets/pipeline/simulation_npm_legacy.py`) with the following adjustements:
 - The input data has been updated based on following of updated model assumptions.
-- A few additional edits to improve model performance and readability.
+- A few additional edits to improve readability.
 
 See full details of the 2024 update to the npm simulation model in `ahl_targets/pipeline/2024_update/README.md`.
 

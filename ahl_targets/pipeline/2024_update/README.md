@@ -8,12 +8,14 @@ This folder contains the scripts used to update the input data and methodology u
 
 ### Impact
 
-On kcal_pp_per_day
-On swa_npm shifts by store
-
-Include figures
+| Model       | Avg kcal per person per day (baseline) | Avg kcal per person per day (post) | Targets Impact (kcal pp per day reduction) | NPM sales-weighted average (baseline) | NPM sales-weighted average (post) |
+| ----------- | -------------------------------------- | ---------------------------------- | ------------------------------------------ | ------------------------------------- | --------------------------------- |
+| 2024 Update | 1907                                   | 1833                               | 74                                         | 1.86                                  | 0.79                              |
+| Original    | 1629                                   | 1579                               | 50                                         | 1.54                                  | 0.53                              |
 
 The impact of the targets on obesity are then calculated using the average calories consumed per person per day as an input to the [Hall model](https://pubmed.ncbi.nlm.nih.gov/21872751/).
+
+For a more detailed comparison of the model outputs, see `ahl_targets/analysis/2024_update/output_comparison.py`.
 
 ## Updates overview
 
@@ -64,4 +66,9 @@ N.B A good way to understand this is to run [this script](https://github.com/nes
 
 ## Detail: Explaining the difference in the impact of the model
 
-To add
+The most surprising aspect of the update is the increase in the relative reduction in average kcal per person per day. Where the original model predicted a 50kcal reduction due to the modelling parameters set in `ahl_targets/config/npm_model.yaml`, the new model predicts a 74 kcal reduction.
+
+This new larger figure is investigated in `ahl_targets/analysis/2024_update/output_comparison.py` which suggests it is a combination of two factors:
+
+1. (Most impactful) As the reincluded products are typically HFSS (ice creams/oils), a greater proportion of products are selected for reformulation and negative sales shifts. While fewer products get selected for positive sales shifts (non-HFSS products), these increases (9%) are smaller than the decreases (10.5%) given the set parameters.
+2. As the reincluded products are typically high-NPM and high energy density, the regression coefficients in the categories including these products increase. In the case of the 'Savoury Home Cooking` category, the re-introduction of cooking oils takes the coefficient from 6.3 to 16.9. Therefore, each instance of reformulation has a much greater modelled effect on calorie density.
